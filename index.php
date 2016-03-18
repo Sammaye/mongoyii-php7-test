@@ -1,5 +1,8 @@
 <?php
 // change the following paths if necessary
+
+require_once(dirname(__FILE__) . '/vendor/autoload.php');
+
 $yii=dirname(__FILE__).'/yii/framework/yii.php';
 $config=dirname(__FILE__).'/protected/config/main.php';
 

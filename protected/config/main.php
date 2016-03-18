@@ -1,7 +1,11 @@
 <?php
 
+use MongoDB\Driver\WriteConcern;
+use MongoDB\Driver\ReadPreference;
+
 // uncomment the following to define a path alias
 // Yii::setPathOfAlias('local','path/to/local-folder');
+Yii::setPathOfAlias('mongoyii', dirname(dirname(__FILE__)) . '/extensions/MongoYii');
 
 // This is the main Web application configuration. Any writable
 // CWebApplication properties can be configured here.
@@ -16,10 +20,7 @@ return array(
 	'import'=>array(
 		'application.models.*',
 		'application.components.*',
-		'application.extensions.MongoYii.*',
-		'application.extensions.MongoYii.validators.*',
-		'application.extensions.MongoYii.behaviors.*',
-		'application.extensions.MongoYii.util.*'
+
 	),
 
 	'modules'=>array(
@@ -38,11 +39,12 @@ return array(
 	'components'=>array(
 
 		'session' => array(
-			'class' => 'EMongoSession',
+			'class' => 'mongoyii\util\Session',
 		),
-		
+
+
 		'cache' => array(
-			'class' => 'EMongoCache',
+			'class' => 'mongoyii\util\Cache',
 		),
 
 		'user'=>array(
@@ -50,6 +52,7 @@ return array(
 			// enable cookie-based authentication
 			'allowAutoLogin'=>true,
 		),
+		
 		// uncomment the following to enable URLs in path-format
 		/*
 		'urlManager'=>array(
@@ -62,15 +65,16 @@ return array(
 		),
 		*/
 		'mongodb' => array(
-			'class' => 'EMongoClient',
-			'server' => 'mongodb://localhost:27017',
-			'options' => array(
-				//'replicaSet' => 'rs0'
-			),
-			'db' => 'super_test',
-			//'w' => 'majority',
-			'RP' => array('RP_PRIMARY', array()),
-			
+			'class' => 'mongoyii\Client',
+			'uri' => 'mongodb://localhost:27017',
+			'options' => [],
+			'driverOptions' => [],
+			'db' => [
+				'super_test' => [
+					'writeConcern' => new WriteConcern(1),
+					'readPreference' => new ReadPreference(ReadPreference::RP_PRIMARY),					
+				]
+			],
 			'enableProfiling' => true
 		),
 		'errorHandler'=>array(

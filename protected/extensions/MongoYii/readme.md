@@ -908,11 +908,11 @@ creators of MongoDB describing its addition to Mongoose](http://aaronheckmann.tu
 To setup a versioned document you can simply create a model implementing `version()` which returns `true` and, optionally, `versionField()`:
 
 	class versioned extends EMongoDocument{
-		public versioned(){
+		public function versioned(){
 			return true;
 		}
 		
-		public versionField(){
+		public function versionField(){
 			return '_v'; // This is actually the default value in EMongoDocument
 		}
 		
@@ -929,7 +929,7 @@ version you have is upto date.
 
 ## Database migrations
 
-Even though MongoDB is schemaless, you sometimes may need to modify your records. To do so, you may use the `yiic mongomigrate` command. 
+Even though MongoDB is schemaless, you sometimes may need to modify your records. To do so, you may use the `yiic migratemongo` command. 
 It works exactly like `yiic migrate`. For detailed usage, please refer to the [yii docs](http://www.yiiframework.com/doc/guide/1.1/en/database.migration).
 
 To enable the command in your application, add a `commandMap` entry in your config file:

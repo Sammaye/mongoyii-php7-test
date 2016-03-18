@@ -298,7 +298,7 @@ class EMongoModel extends CModel
 	 */
 	public function populateRecord($attributes, $runEvent = true)
 	{
-		if($attributes === false){
+		if($attributes === false || $attributes === null){
 			return null;
 		}
 		
@@ -384,7 +384,37 @@ class EMongoModel extends CModel
 		$cname = $relation[1];
 		$fkey = $relation[2];
 		$pk = isset($relation['on']) ? $this->{$relation['on']} : $this->getPrimaryKey();
+		$pkName = isset($relation['on']) ? $relation['on'] : $this->primaryKey();
 
+		// This will detect . notation key names like AuthorName.id
+		if(strpos($pkName, '.') !== false){
+			
+			$pk = [];
+			
+			$parts = explode('.', $pkName);
+			
+			if($this->hasAttribute($parts[0])){
+			
+				$val = $this->{$parts[0]};
+			
+				if(!is_array($val) && !is_object($val)){
+					// continue
+				}elseif(is_object($val) && property_exists($val, $parts[1])){
+					$pk[] = $val->{$parts[1]};
+				}elseif(is_array($val) && isset($val[$parts[1]])){
+					$pk[] = $val[$parts[1]];
+				}else{
+					foreach($val as $k => $v){
+						if(is_array($v) && isset($v[$parts[1]])){
+							$pk[] = $v[$parts[1]];
+						}elseif(is_object($v) && property_exists($v, $parts[1])){
+							$pk[] = $v->{$parts[1]};
+						}
+					}
+				}
+			}
+		}
+		
 		// This takes care of cases where the PK is an DBRef and only one DBRef, where it could 
 		// be mistaken as a multikey field 
         if($relation[0] === 'one' && is_array($pk) && array_key_exists('$ref', $pk)){
@@ -404,10 +434,15 @@ class EMongoModel extends CModel
 				$result = array();
 				foreach($pk as $singleReference){
 					$row = $this->populateReference($singleReference, $cname);
-					if($row){
-						array_push($result, $row);
-					}
+					
+					// When $row does not exists it will return null. It will not add it to $result
+					array_push($result, $row);
 				}
+				
+				// When $row is null count($result) will be 0 and $result will be an empty array
+				// Because we are a one relation we want to return null when a row does not exists
+				// Currently it was returning an empty array
+				
 				if($relation[0] === 'one' && count($result) > 0){
 					$result = $result[0];
 				}

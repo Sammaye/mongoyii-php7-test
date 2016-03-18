@@ -66,7 +66,6 @@ class CCacheDependency extends CComponent implements ICacheDependency
 	 */
 	public function getHasChanged()
 	{
-		var_dump($this);
 		if ($this->reuseDependentData)
 		{
 			$hash=$this->getHash();
