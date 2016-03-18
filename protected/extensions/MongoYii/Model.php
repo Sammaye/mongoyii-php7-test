@@ -1,6 +1,16 @@
 <?php
 
-class EMongoModel extends CModel
+namespace mongoyii;
+
+use Yii;
+use CModel;
+use CException;
+
+use mongoyii\Client;
+use mongoyii\Document;
+use mongoyii\Exception;
+
+class Model extends CModel
 {
 	/**
 	 * @var EMongoClient the default database connection for all active record classes.
@@ -367,7 +377,7 @@ class EMongoModel extends CModel
 		$relations = $this->relations();
 
 		if(!isset($relations[$name])){
-			throw new EMongoException(
+			throw new Exception(
 				Yii::t(
 					'yii',
 					'{class} does not have relation "{name}".',
@@ -429,31 +439,8 @@ class EMongoModel extends CModel
 		
 		// Find out what the pk is and what kind of condition I should apply to it
 		if(is_array($pk)){
-			//It is an array of references
-			if(MongoDBRef::isRef(reset($pk))){
-				$result = array();
-				foreach($pk as $singleReference){
-					$row = $this->populateReference($singleReference, $cname);
-					
-					// When $row does not exists it will return null. It will not add it to $result
-					array_push($result, $row);
-				}
-				
-				// When $row is null count($result) will be 0 and $result will be an empty array
-				// Because we are a one relation we want to return null when a row does not exists
-				// Currently it was returning an empty array
-				
-				if($relation[0] === 'one' && count($result) > 0){
-					$result = $result[0];
-				}
-				return $this->_related[$name] = $result;
-			}
 			// It is an array of _ids
 			$clause = array_merge($where, array($fkey => array('$in' => $pk)));
-		}elseif($pk instanceof MongoDBRef){
-			// I should probably just return it here
-			// otherwise I will continue on
-			return $this->_related[$name] = $this->populateReference($pk, $cname);
 		}else{
 			// It is just one _id
 			$clause = array_merge($where, array($fkey => $pk));
@@ -465,28 +452,20 @@ class EMongoModel extends CModel
 			return $this->_related[$name] = $o->findOne($clause);
 		}elseif($relation[0] === 'many'){
 			// Lets find them and return them
-			$cursor = $o->find($clause)
-				->sort(isset($relation['sort']) ? $relation['sort'] : array())
-				->skip(isset($relation['skip']) ? $relation['skip'] : null)
-				->limit(isset($relation['limit']) ? $relation['limit'] : null);
-			
+			$cursor = $o->find(
+				$clause, 
+				[
+					'sort' => isset($relation['sort']) ? $relation['sort'] : [], 
+					'skip' => isset($relation['skip']) ? $relation['skip'] : null, 
+					'limit' => isset($relation['limit']) ? $relation['limit'] : null
+				]
+			);
+
 			if(!isset($relation['cache']) || $relation['cache'] === true){
 				return $this->_related[$name] = iterator_to_array($cursor);
 			}
 		}
 		return $cursor; // FAIL SAFE
-	}
-
-	/**
-	 * @param mixed $reference Reference to populate
-	 * @param null|string $cname Class of model to populate. If not specified, populates data on current model
-	 * @return EMongoModel
-	 */
-	public function populateReference($reference, $cname = null)
-	{
-		$row = MongoDBRef::get(self::$db->getDB(), $reference);
-		$o = (is_null($cname)) ? $this : $cname::model();
-		return $o->populateRecord($row);
 	}
 
 	/**
@@ -627,11 +606,11 @@ class EMongoModel extends CModel
 		if(self::$db !== null){
 			return self::$db;
 		}
-		self::$db = $this->getMongoComponent();
-		if(self::$db instanceof EMongoClient){
-			return self::$db;
+		self::$db = $this->getMongoComponent()->selectDatabase();
+		if(self::$db instanceof Client){
+			return self::$db->selectDatabase();
 		}
-		throw new EMongoException(Yii::t('yii', 'MongoDB Active Record requires a "mongodb" EMongoClient application component.'));
+		throw new Exception(Yii::t('yii', 'MongoDB Active Record requires a "mongodb" mongoyii\Client application component.'));
 	}
 	
 	/**
@@ -696,7 +675,7 @@ class EMongoModel extends CModel
 			foreach($doc as $k => $v){
 				if(is_array($v)){
 					$doc[$k] = $this->{__FUNCTION__}($doc[$k]);
-				}elseif($v instanceof EMongoModel || $v instanceof EMongoDocument){
+				}elseif($v instanceof Model || $v instanceof Document){
 					$doc[$k] = $doc[$k]->getRawDocument();
 				}
 			}

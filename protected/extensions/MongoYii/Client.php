@@ -7,10 +7,12 @@ use CApplicationComponent;
 use CValidator;
 
 use MongoDB\Client;
-use MongoDB\Database;
+use MongoDB\Database as DriverDatabase;
 use MongoDB\Driver\WriteConcern;
 use MongoDB\Driver\ReadPreference;
 
+use mongoyii\Database;
+use mongoyii\Collection;
 use mongoyii\Exception;
 
 /**
@@ -150,7 +152,7 @@ class Client extends CApplicationComponent
 		}
 
 		// We copy this function to add the subdocument validator as a built in validator
-		CValidator::$builtInValidators['subdocument'] = 'mongoyii\validators\Subdocument';
+		CValidator::$builtInValidators['subdocument'] = 'mongoyii\validators\SubdocumentValidator';
 
 		$this->client = new Client($this->uri, $this->options);
 
@@ -202,7 +204,10 @@ class Client extends CApplicationComponent
 			if(isset($this->dbs[$name])){
 				return $this->dbs[$name];
 			}
-			return $this->dbs[$name] = $this->getclient()->selectDatabase($name, $options);
+			return $this->dbs[$name] = new Database(
+				$this->getclient()->selectDatabase($name, $options),
+				$this
+			);
 		}
 		
 		// If we have a default database set let's go looking for it

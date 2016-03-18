@@ -1,12 +1,17 @@
 <?php
 
+namespace mongoyii;
+
+use Yii;
+use CLogRoute;
+
 /**
 * EMongoLogRoute extends CLogRoute and provides logging
 * into MongoDB.
 * It is the mongodb equivalent of CDbLogRoute
 */
 
-class EMongoLogRoute extends CLogRoute
+class LogRoute extends CLogRoute
 {
 	/**
 	 * @var string the connectionId of the EMongoClient component
@@ -25,7 +30,10 @@ class EMongoLogRoute extends CLogRoute
 	 */
 	public function getMongoConnection()
 	{
-		return Yii::app()->{$this->connectionId}->{$this->logCollectionName};
+		return Yii::app()
+			->{$this->connectionId}
+			->selectDatabase()
+			->{$this->logCollectionName};
 	}
 
 	/**
@@ -36,7 +44,7 @@ class EMongoLogRoute extends CLogRoute
 	{
 		$collection = $this->getMongoConnection();
 		foreach($logs as $log){
-			$collection->insert(
+			$collection->insertOne(
 				array(
 					'level' => $log[1],
 					'category' => $log[2],

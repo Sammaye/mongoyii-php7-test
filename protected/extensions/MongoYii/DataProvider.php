@@ -1,11 +1,19 @@
 <?php
 
+namespace mongoyii;
+
+use Yii;
+use CActiveDataProvider;
+
+use mongoyii\Document;
+use mongoyii\Query;
+
 /**
  * EMongoDataProvider
  *
  * A data Provider helper for interacting with the EMongoCursor
  */
-class EMongoDataProvider extends CActiveDataProvider
+class DataProvider extends CActiveDataProvider
 {
 	/**
 	 * The primary ActiveRecord class name. The {@link getData()} method
@@ -54,8 +62,8 @@ class EMongoDataProvider extends CActiveDataProvider
 	{
 		if(is_string($modelClass)){
 			$this->modelClass = $modelClass;
-			$this->model = EMongoDocument::model($this->modelClass);
-		}elseif($modelClass instanceof EMongoDocument){
+			$this->model = Document::model($this->modelClass);
+		}elseif($modelClass instanceof Document){
 			$this->modelClass = get_class($modelClass);
 			$this->model = $modelClass;
 		}
@@ -80,7 +88,7 @@ class EMongoDataProvider extends CActiveDataProvider
 	 */
 	public function setCriteria($value)
 	{
-		if($value instanceof EMongoCriteria){
+		if($value instanceof Query){
 			$this->_criteria = $value->toArray();
 		}
 		if(is_array($value)){
@@ -95,41 +103,46 @@ class EMongoDataProvider extends CActiveDataProvider
 	public function fetchData()
 	{
 		$criteria = $this->getCriteria();
-
-		// I have not refactored this line considering that the condition may have changed from total item count to here, maybe.
-		$this->_cursor = $this->model->find(
-			isset($criteria['condition']) && is_array($criteria['condition']) ? $criteria['condition'] : array(),
-			isset($criteria['project']) && !empty($criteria['project']) ? $criteria['project'] : array()
-		);
+		$options = ['modifiers' => []];
+		
+		if(isset($criteria['project']) && !empty($criteria['project'])){
+			$options['projection'] = $criteria['project'];
+		}
 
 		// If we have sort and limit and skip setup within the incoming criteria let's set it
 		if(isset($criteria['sort']) && is_array($criteria['sort'])){
-			$this->_cursor->sort($criteria['sort']);
+			$options['sort'] = $criteria['sort'];
 		}
 		if(isset($criteria['skip']) && is_int($criteria['skip'])){
-			$this->_cursor->skip($criteria['skip']);
+			$options['skip'] = $criteria['skip'];
 		}
 		if(isset($criteria['limit']) && is_int($criteria['limit'])){
-			$this->_cursor->limit($criteria['limit']);
+			$options['limit'] = $criteria['limit'];
 		}
 
 		if(isset($criteria['hint']) && (is_array($criteria['hint']) || is_string($criteria['hint']))){
-			$this->_cursor->hint($criteria['hint']);
+			$options['modifiers']['$hint'] = $criteria['hint'];
 		}
 
 		if(($pagination = $this->getPagination()) !== false){
 			$pagination->setItemCount($this->getTotalItemCount());
-			$this->_cursor->limit($pagination->getLimit());
-			$this->_cursor->skip($pagination->getOffset());
+			$options['limit'] = $pagination->getLimit();
+			$options['skip'] = $pagination->getOffset();
 		}
 
 		if(($sort = $this->getSort()) !== false){
 			$sort = $sort->getOrderBy();
 			if(count($sort) > 0){
-				$this->_cursor->sort($sort);
+				$options['sort'] = $sort;
 			}
 		}
-		return iterator_to_array($this->_cursor, false);
+		return iterator_to_array(
+			$this->model->find(
+				isset($criteria['condition']) && is_array($criteria['condition']) ? $criteria['condition'] : array(),
+				$options
+			), 
+			false
+		);
 	}
 
 	/**
@@ -184,7 +197,7 @@ class EMongoDataProvider extends CActiveDataProvider
 	 * @param string $className
 	 * @return CSort|EMongoSort|false - the sorting object. If this is false, it means the sorting is disabled.
 	 */
-	public function getSort($className = 'EMongoSort')
+	public function getSort($className = 'mongoyii\Sort')
 	{
 		if($this->_sort === null){
 			$this->_sort = new $className;

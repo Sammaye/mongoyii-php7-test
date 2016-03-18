@@ -1,4 +1,13 @@
 <?php
+
+namespace mongoyii;
+
+use Yii;
+use CSort;
+
+use mongoyii\Document;
+use mongoyii\Exception;
+
 /**
  * EMongoSort
  * @author Andrea Cardinale <a.cardinale80@gmail.com>
@@ -9,7 +18,7 @@
 /**
  * This is only ever used in conjunction with CGridView and CListView. It is not designed to be used independantly
  */
-class EMongoSort extends CSort
+class Sort extends CSort
 {
 	/**
 	 * @see CSort::resolveAttribute()
@@ -21,10 +30,10 @@ class EMongoSort extends CSort
 		if($this->attributes !== array()){
 			$attributes = $this->attributes;
 		}elseif($this->modelClass !== null){
-			$attributes = EmongoDocument::model($this->modelClass)->attributeNames();
+			$attributes = Document::model($this->modelClass)->attributeNames();
 			if(empty($attributes)){
 				// The previous statement can return null in certain models. So this is used as backup.
-				$attributes = EmongoDocument::model($this->modelClass)->safeAttributeNames;
+				$attributes = Document::model($this->modelClass)->safeAttributeNames;
 			}
 		}else{
 			return false;
@@ -35,7 +44,7 @@ class EMongoSort extends CSort
 					return $definition;
 				}
 			}elseif($definition === '*'){
-				if($this->modelClass !== null && EmongoDocument::model($this->modelClass)->hasAttribute($attribute)){
+				if($this->modelClass !== null && Document::model($this->modelClass)->hasAttribute($attribute)){
 					return $attribute;
 				}
 			}elseif($definition === $attribute){
@@ -61,7 +70,7 @@ class EMongoSort extends CSort
 			$attribute = $definition;
 		}
 		if($this->modelClass !== null){
-			return EmongoDocument::model($this->modelClass)->getAttributeLabel($attribute);
+			return Document::model($this->modelClass)->getAttributeLabel($attribute);
 		}
 		return $attribute;
 	}
@@ -94,7 +103,7 @@ class EMongoSort extends CSort
 				$attribute = $definition;
 				if(isset($schema)){
 					if(($pos = strpos($attribute,'.')) !== false){
-						throw new EMongoException('MongoDB cannot sort on joined fields please modify ' . $attribute . ' to not be sortable');
+						throw new Exception('MongoDB cannot sort on joined fields please modify ' . $attribute . ' to not be sortable');
 						//$attribute=$schema->quoteTableName(substr($attribute,0,$pos)).'.'.$schema->quoteColumnName(substr($attribute,$pos+1));
 					}else{
 						// MongoDB does not need these escaping or table namespacing elements at all so they have been commented out for the second
