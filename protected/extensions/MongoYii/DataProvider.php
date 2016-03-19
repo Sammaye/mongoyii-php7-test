@@ -88,11 +88,14 @@ class DataProvider extends CActiveDataProvider
 	 */
 	public function setCriteria($value)
 	{
-		if($value instanceof Query){
-			$this->_criteria = $value->toArray();
-		}
 		if(is_array($value)){
+			$this->_criteria = new Query($value);
+		}elseif($value instanceof Query){
 			$this->_criteria = $value;
+		}else{
+			throw new Exception(
+				'Criteria for the mongoyii\DataProvider must be either an array or a mongoyii\Query object'
+			);
 		}
 	}
 
@@ -103,44 +106,21 @@ class DataProvider extends CActiveDataProvider
 	public function fetchData()
 	{
 		$criteria = $this->getCriteria();
-		$options = ['modifiers' => []];
-		
-		if(isset($criteria['project']) && !empty($criteria['project'])){
-			$options['projection'] = $criteria['project'];
-		}
-
-		// If we have sort and limit and skip setup within the incoming criteria let's set it
-		if(isset($criteria['sort']) && is_array($criteria['sort'])){
-			$options['sort'] = $criteria['sort'];
-		}
-		if(isset($criteria['skip']) && is_int($criteria['skip'])){
-			$options['skip'] = $criteria['skip'];
-		}
-		if(isset($criteria['limit']) && is_int($criteria['limit'])){
-			$options['limit'] = $criteria['limit'];
-		}
-
-		if(isset($criteria['hint']) && (is_array($criteria['hint']) || is_string($criteria['hint']))){
-			$options['modifiers']['$hint'] = $criteria['hint'];
-		}
 
 		if(($pagination = $this->getPagination()) !== false){
 			$pagination->setItemCount($this->getTotalItemCount());
-			$options['limit'] = $pagination->getLimit();
-			$options['skip'] = $pagination->getOffset();
+			$criteria->limit = $pagination->getLimit();
+			$criteria->skip = $pagination->getOffset();
 		}
 
 		if(($sort = $this->getSort()) !== false){
 			$sort = $sort->getOrderBy();
 			if(count($sort) > 0){
-				$options['sort'] = $sort;
+				$criteria->sort = $sort;
 			}
 		}
 		return iterator_to_array(
-			$this->model->find(
-				isset($criteria['condition']) && is_array($criteria['condition']) ? $criteria['condition'] : array(),
-				$options
-			), 
+			$this->model->find($criteria), 
 			false
 		);
 	}
@@ -167,7 +147,7 @@ class DataProvider extends CActiveDataProvider
 	{
 		if(!$this->_cursor){
 			$criteria = $this->getCriteria();
-			$this->_cursor = $this->model->find(isset($criteria['condition']) && is_array($criteria['condition']) ? $criteria['condition'] : array());
+			$this->_cursor = $this->model->count($criteria->getCondition());
 		}
 		return $this->_cursor->count();
 	}

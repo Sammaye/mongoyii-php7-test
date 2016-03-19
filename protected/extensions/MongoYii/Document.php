@@ -1108,7 +1108,13 @@ class Document extends Model
 				}
 			}
 		}
-		return new DataProvider($this, array('criteria' => array('condition' => $query, 'project' => $project, 'sort' => $sort)));
+		return new DataProvider($this, [
+			'criteria' => [
+				'condition' => $query, 
+				'select' => $project, 
+				'sort' => $sort
+			]
+		]);
 	}
 
 	/**
