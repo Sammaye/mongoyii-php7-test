@@ -35,6 +35,8 @@ class Cursor implements Iterator, Countable
 	 */
 	public $model;
 	
+	public $partial;
+	
 	/**
 	 * @var array|MongoCursor|EMongoDocument[]
 	 */
@@ -45,14 +47,6 @@ class Cursor implements Iterator, Countable
 	 */
 	private $current;
 
-	/**
-	 * This denotes a partial cursor which in turn will transpose onto the active record
-	 * to state a partial document. If any projection is supplied this will result in true since
-	 * I cannot detect if you are projecting the whole document or not...THERE IS NO PRE-DEFINED SCHEMA
-	 * @var boolean
-	 */
-	private $partial = false;
-	
 	/**
 	 * The cursor constructor
 	 * @param string|EMongoDocument $modelClass - The class name for the active record
@@ -97,6 +91,11 @@ class Cursor implements Iterator, Countable
 			'Call to undefined function {method} on the cursor', 
 			['{method}' => $method]
 		));
+	}
+	
+	public function count()
+	{
+		throw new Exception('Count can no longer be done on the cursor!!');
 	}
 
 	/**

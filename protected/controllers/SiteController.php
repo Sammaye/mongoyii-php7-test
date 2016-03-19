@@ -26,7 +26,19 @@ class SiteController extends Controller
 	 * when an action is not explicitly requested by users.
 	 */
 	public function actionIndex()
-	{	
+	{
+		//$a = new Article;
+		//$a->title = 'Poop';
+		//$a->body = 'Poop more';
+		//var_dump($a->save());
+		
+		$c = Article::model()->find();
+		//var_dump($c); exit();
+		$cursor = $c;
+		foreach($cursor as $doc){
+			var_dump($doc);
+		}
+		exit();
 		//$q = User::model()->near([59.3, 24.8])->userSearch('text');
 		//var_dump($q->fetchData());
 		$this->render('index');

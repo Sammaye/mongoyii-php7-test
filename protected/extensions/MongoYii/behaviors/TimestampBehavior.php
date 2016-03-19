@@ -48,7 +48,7 @@ use mongoyii\Exception;
  * Although EMongoTimestampBheaviour attempts to figure out on it's own what value to inject into the timestamp attribute,
  * you may specify a custom value to use instead via {@link timestampExpression}
  */
-class TimestampBehaviour extends CActiveRecordBehavior
+class TimestampBehavior extends CActiveRecordBehavior
 {
 	/**
 	 * @var mixed The name of the attribute to store the creation time.  Set to null to not
@@ -119,7 +119,7 @@ class TimestampBehaviour extends CActiveRecordBehavior
 		}elseif($this->timestampExpression !== null){
 			return @eval('return '.$this->timestampExpression.';');
 		}
-		return new UTCDateTime();
+		return new UTCDateTime(time()*1000);
 	}
 
 	protected function checkScenarios()

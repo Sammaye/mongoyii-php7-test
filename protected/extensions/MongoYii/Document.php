@@ -7,6 +7,7 @@ use MongoDB\BSON\Regex;
 
 use Yii;
 use CMap;
+use CModelEvent;
 
 use mongoyii\Model;
 use mongoyii\Query;
@@ -638,7 +639,7 @@ class Document extends Model
 
 		$this->lastError = $this->getCollection()->insertOne($document);
 
-		if($this->lastError){
+		if($this->lastError->nInserted > 0){
 			$this->afterSave();
 			$this->setIsNewRecord(false);
 			$this->setScenario('update');
@@ -783,63 +784,21 @@ class Document extends Model
 	 * @param array|string[] $fields
 	 * @return EMongoDocument|null
 	 */
-	public function findOne($criteria = array(), $fields = array())
+	public function findOne($filter = [], $options = [])
 	{
 		$this->trace(__FUNCTION__);
 
 		$this->beforeFind(); // Apparently this is applied before even scopes...
-
-		if($criteria instanceof EMongoCriteria){
-			$criteria = $criteria->getCondition();
-		}
-		$c = $this->getDbCriteria();
-
-		$query = $this->mergeCriteria(isset($c['condition']) ? $c['condition'] : array(), $criteria);
-		$project = $this->mergeCriteria(isset($c['project']) ? $c['project'] : array(), $fields);
 		
-		Yii::trace(
-			'Executing findOne: '.'{$query:' . json_encode($query) . ',$project:' . json_encode($project) . '}',
-			'extensions.MongoYii.EMongoDocument'
-		);
+		$query = new Query;
+		//$query->mergeWith($this->getDbCriteria());
 
-		if(
-			$this->getDbConnection()->queryCachingCount > 0
-			&& $this->getDbConnection()->queryCachingDuration > 0
-			&& $this->getDbConnection()->queryCacheID !== false
-			&& ($cache = Yii::app()->getComponent($this->getDbConnection()->queryCacheID))
-			&& ($cacheKey = 'yii:dbquery'.$this->getDbConnection()->server.':'.$this->getDbConnection()->db .':'.$this->getDbConnection()->getSerialisedQuery($query, $project).':'.$this->getCollection())
-			&& ($result = $cache->get($cacheKey)) !== false
-		){
-			$this->getDbConnection()->queryCachingCount--;
-			Yii::trace('Query result found in cache', 'extensions.MongoYii.EMongoDocument');
-			$record = $result[0];
-		}else{
-			if($this->getDbConnection()->enableProfiling){
-				Yii::beginProfile(
-					'extensions.MongoYii.EMongoDocument.query.' . $this->collectionName() . '.findOne(' . '{$query:' . json_encode($query) . ',$project:' . json_encode($project) . '}' . ')',
-					'extensions.MongoYii.EMongoDocument.findOne'
-				);
-			}
-	
-			$record = $this->getCollection()->findOne($query, $project);
-	
-			if($this->getDbConnection()->enableProfiling){
-				Yii::endProfile(
-					'extensions.MongoYii.EMongoDocument.query.' . $this->collectionName() . '.findOne(' . '{$query:' . json_encode($query) . ',$project:' . json_encode($project) . '}' . ')',
-					'extensions.MongoYii.EMongoDocument.findOne'
-				);
-			}
-			
-			if(isset($cache, $cacheKey)){
-				$cache->set($cacheKey, array($record), $this->getDbConnection()->queryCachingDuration, $this->getDbConnection()->queryCachingDependency);
-			}
-		}
+		$query->andCondition($filter);
+		$query->parseOptions($options);
+		$query->model = $this;
 
-        $this->resetScope(false);
-		if($record === null){
-			return null;
-		}
-		return $this->populateRecord($record, true, $project === array() ? false : true);
+		$this->resetScope(false);
+		return $query->one();
 	}
 
 	/**
@@ -891,60 +850,21 @@ class Document extends Model
 	 * @param array|string[] $fields
 	 * @return EMongoCursor|EMongoDocument[]
 	 */
-	public function find($criteria = array(), $fields = array())
+	public function find($filter = [], $options = [])
 	{
 		$this->trace(__FUNCTION__);
 
 		$this->beforeFind(); // Apparently this is applied before even scopes...
-
-		if($criteria instanceof EMongoCriteria){
-			$c = $criteria->mergeWith($this->getDbCriteria())->toArray();
-			$criteria = array();
-		}else{
-			$c = $this->getDbCriteria();
-		}
-
-		$query = $this->mergeCriteria(isset($c['condition']) ? $c['condition'] : array(), $criteria);
-		$project = $this->mergeCriteria(isset($c['project']) ? $c['project'] : array(), $fields);
-
-		Yii::trace(
-			'Executing find: ' . '{$query:'.json_encode($query) . ',$project:'.json_encode($project)
-			 . (isset($c['sort']) ? ',$sort:'.json_encode($c['sort']).',' : '')
-			 . (isset($c['skip']) ? ',$skip:'.json_encode($c['skip']).',' : '')
-			 . (isset($c['limit']) ? ',$limit:'.json_encode($c['limit']).',' : '')
-			.'}', 
-			'extensions.MongoYii.EMongoDocument'
-		);
 		
-		if($this->getDbConnection()->enableProfiling){
-			$token = 'extensions.MongoYii.EMongoDocument.query.' . $this->collectionName() . '.find(' . '{$query:' . json_encode($query)
-			 . ',$project:'.json_encode($project)
-			 . (isset($c['sort']) ? ',$sort:'.json_encode($c['sort']).',' : '')
-			 . (isset($c['skip']) ? ',$skip:'.json_encode($c['skip']).',' : '')
-			 . (isset($c['limit']) ? ',$limit:'.json_encode($c['limit']).',' : '')
-			 .'})';
-			Yii::beginProfile($token, 'extensions.MongoYii.EMongoDocument.find');
-		}
+		$query = new Query;
+		//$query->mergeWith($this->getDbCriteria());
 
-		if($c !== array()){
-			$cursor = new EMongoCursor($this, $query, $project);
-			if(isset($c['sort'])){
-				$cursor->sort($c['sort']);
-			}
-			if(isset($c['skip'])){
-				$cursor->skip($c['skip']);
-			}
-			if(isset($c['limit'])){
-				$cursor->limit($c['limit']);
-			}
-			$this->resetScope(false);
-		}else{
-			$cursor = new EMongoCursor($this, $criteria, $project);
-		}
-		if($this->getDbConnection()->enableProfiling){
-			Yii::endProfile($token, 'extensions.MongoYii.EMongoDocument.find');
-		}
-		return $cursor;
+		$query->andCondition($filter);
+		$query->parseOptions($options);
+		$query->model = $this;
+
+		$this->resetScope(false);
+		return $query->all();
 	}
 
 	/**
@@ -1356,7 +1276,7 @@ class Document extends Model
 	 */
 	public function getCollection()
 	{
-		return $this->getDbConnection()->{$this->collectionName()};
+		return $this->getDbConnection()->selectDatabase()->{$this->collectionName()};
 	}
 
 	/**

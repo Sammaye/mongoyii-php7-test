@@ -606,9 +606,9 @@ class Model extends CModel
 		if(self::$db !== null){
 			return self::$db;
 		}
-		self::$db = $this->getMongoComponent()->selectDatabase();
+		self::$db = $this->getMongoComponent();
 		if(self::$db instanceof Client){
-			return self::$db->selectDatabase();
+			return self::$db;
 		}
 		throw new Exception(Yii::t('yii', 'MongoDB Active Record requires a "mongodb" mongoyii\Client application component.'));
 	}

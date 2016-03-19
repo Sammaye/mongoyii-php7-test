@@ -34,6 +34,52 @@ class Collection
 	    $this->collection = $collection;
 	    $this->client = $client;
 	}
+	
+	public function findOne($filter = [], $options = [])
+	{
+		$collectionName = $this->collection->getCollectionName();
+
+		$serialisedQuery = json_encode([
+			'$query' => $filter,
+			'$options' => $options
+		]);
+		
+		Yii::trace("Executing find: $serialisedQuery", 'mongoyii\Collection');
+		
+		if($this->getDbConnection()->enableProfiling){
+			$token = "mongoyii\\$collectionName.find($serialisedQuery)";
+			Yii::beginProfile($token, 'mongoyii\Collection.findOne');
+		}
+				
+		$res = $this->collection->findOne($filter, $options);
+		if($this->getDbConnection()->enableProfiling){
+			Yii::endProfile($token, 'mongoyii\Collection.findOne');
+		}
+		return $res;
+	}
+	
+	public function find($filter = [], $options = [])
+	{
+		$collectionName = $this->collection->getCollectionName();
+
+		$serialisedQuery = json_encode([
+			'$query' => $filter,
+			'$options' => $options
+		]);
+		
+		Yii::trace("Executing find: $serialisedQuery", 'mongoyii\Collection');
+		
+		if($this->getDbConnection()->enableProfiling){
+			$token = "mongoyii\\$collectionName.find($serialisedQuery)";
+			Yii::beginProfile($token, 'mongoyii\Collection.find');
+		}
+				
+		$res = $this->collection->find($filter, $options);
+		if($this->getDbConnection()->enableProfiling){
+			Yii::endProfile($token, 'mongoyii\Collection.find');
+		}
+		return $res;
+	}
     
     public function insertOne($document, array $options = [])
     {

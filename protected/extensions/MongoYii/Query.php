@@ -3,10 +3,16 @@
 namespace mongoyii;
 
 use MongoDB\BSON\Regex;
+use MongoDB\Driver\Cursor as MongoCursor;
 
 use Yii;
 use CComponent;
 use CMap;
+
+use mongoyii\Client;
+use mongoyii\Document;
+use mongoyii\Cursor;
+use mongoyii\Exception;
 
 /**
  * This is the extensions version of CDbCriteria.
@@ -21,15 +27,27 @@ use CMap;
  */
 class Query extends CComponent
 {
+	public static $db;
+	
 	/**
+	 * Holds information for what should be projected from the cursor
+	 * into active models. The reason for this obscure name is because this
+	 * is what it is called in MongoDB, basically it is SELECT though.
 	 * @var array
 	 */
-	private $_condition = array();
+	private $_select = [];
+	
+	private $_from;
 	
 	/**
 	 * @var array
 	 */
-	private $_sort = array();
+	private $_condition = [];
+	
+	/**
+	 * @var array
+	 */
+	private $_sort = [];
 	
 	/**
 	 * @var int
@@ -40,20 +58,16 @@ class Query extends CComponent
 	 * @var int
 	 */
 	private $_limit = 0;
+	
+	private $_options = ['modifiers' => []];
 
-	/**
-	 * Holds information for what should be projected from the cursor
-	 * into active models. The reason for this obscure name is because this
-	 * is what it is called in MongoDB, basically it is SELECT though.
-	 * @var array
-	 */
-	private $_project = array();
+	private $_modelClass;
 
 	/**
 	 * Constructor.
 	 * @param array $data - criteria initial property values (indexed by property name)
 	*/
-	public function __construct($data = array())
+	public function __construct($data = [])
 	{
 		foreach($data as $name => $value){
 			$this->$name = $value;
@@ -61,23 +75,85 @@ class Query extends CComponent
 	}
 
 	/**
-	 * Sets the condition
-	 * @param array $condition
+	 * Sets the projection (SELECT in MongoDB Lingo) of the criteria
+	 * @param array $document - The document specification for projection
 	 * @return EMongoCriteria
 	 */
-	public function setCondition(array $condition=array())
+	public function setSelect($document)
 	{
-		$this->_condition = CMap::mergeArray($condition, $this->_condition);
+		$this->_select = $document;
 		return $this;
 	}
 
 	/**
-	 * Gets the condition
+	 * This means that the getters and setters for projection will be access like:
+	 * $c->project(array('c'=>1,'d'=>0));
 	 * @return array
 	 */
+	public function getSelect()
+	{
+		return $this->_select;
+	}
+
+	public function setFrom($name)
+	{
+		$this->_from = $name;	
+	}
+
+	public function getFrom()
+	{
+		if(!$this->_from && $this->model){
+			// Try and decipher from model if there is one
+			$this->_from = $this->model->collectionName();
+		}
+		return $this->_from;
+	}
+
+	/**
+	 * Sets the condition
+	 * @param array $condition
+	 * @return EMongoCriteria
+	 */
+	public function setCondition(array $condition = [])
+	{
+		$this->_condition = $condition;
+		return $this;
+	}
+	
 	public function getCondition()
 	{
 		return $this->_condition;
+	}
+	
+	public function andCondition($condition)
+	{
+		$this->_condition = CMap::mergeArray($condition, $this->_condition);
+		return $this;
+	}
+	
+	/**
+	 * Append condition to previous ones using the column name as the index
+	 * This will overwrite columns of the same name
+	 * @param string $column
+	 * @param mixed $value
+	 * @param string $operator
+	 * @return EMongoCriteria
+	 */
+	public function addCondition($column, $value, $operator = null)
+	{
+		$this->_condition[$column] = $operator === null ? $value : array($operator => $value);
+		return $this;
+	}
+
+	/**
+	 * Adds an $or condition to the criteria, will overwrite other $or conditions
+	 * @param array $condition
+	 * @return EMongoCriteria
+	 */
+	public function addOrCondition($condition)
+	{
+		$this->_condition['$and'][] = array('$or' => $condition);
+		return $this;
 	}
 
 	/**
@@ -147,72 +223,115 @@ class Query extends CComponent
 	{
 		return $this->_limit;
 	}
-
-	/**
-	 * Sets the projection (SELECT in MongoDB Lingo) of the criteria
-	 * @param array $document - The document specification for projection
-	 * @return EMongoCriteria
-	 */
-	public function setProject($document)
+	
+	public function setOptions($options)
 	{
-		$this->_project = $document;
+		$this->_options = $options;
 		return $this;
 	}
-
-	/**
-	 * This means that the getters and setters for projection will be access like:
-	 * $c->project(array('c'=>1,'d'=>0));
-	 * @return array
-	 */
-	public function getProject()
+	
+	public function addOption($name, $value)
 	{
-		return $this->_project;
+		$this->_options[$name] = $value;
 	}
-
-	/**
-	 * An alias for those too used to select
-	 * @see EMongoCriteria::setProject()
-	 * @param array $document
-	 * @return EMongoCriteria
-	 */
-	public function setSelect($document)
+	
+	public function addModifier($name, $value)
 	{
-		return $this->setProject($document);
+		$this->_options['modifiers'][$name] = $value;
 	}
-
-	/**
-	 * An alias for those too used to select
-	 * @see EMongoCriteria::getProject()
-	 * @return array
-	 */
-	public function getSelect()
+	
+	public function getOptions()
 	{
-		return $this->getProject();
+		return CMap::mergeArray([
+			'projection' => $this->select,
+			'sort' => $this->sort,
+			'skip' => $this->skip,
+			'limit' => $this->limit
+		], $this->_options);
 	}
-
+	
 	/**
-	 * Append condition to previous ones using the column name as the index
-	 * This will overwrite columns of the same name
-	 * @param string $column
-	 * @param mixed $value
-	 * @param string $operator
-	 * @return EMongoCriteria
+	 * This function allows you to take a raw options 
+	 * parameter from the driver and parse it into this object
+	 * could be useful for some cases
 	 */
-	public function addCondition($column, $value, $operator = null)
+	public function parseOptions($options)
 	{
-		$this->_condition[$column] = $operator === null ? $value : array($operator => $value);
-		return $this;
+		if(isset($options['projection'])){
+			$this->select = $options['projection'];
+		}
+		
+		if(isset($options['sort'])){
+			$this->sort = $options['sort'];
+		}
+		
+		if(isset($options['skip'])){
+			$this->skip = $options['skip'];
+		}
+		
+		if(isset($options['limit'])){
+			$this->limit = $options['limit'];
+		}
+		
+		if(isset($options['modifiers'])){
+			foreach($options['modifiers'] as $k => $v){
+				$this->addModifier($k, $v);
+			}
+		}
+		
+		unset(
+			$options['projection'],
+			$options['sort'],
+			$options['skip'],
+			$options['limit'],
+			$options['modifiers']
+		);
+		
+		foreach($options as $k => $v){
+			$this->addOption($k, $v);
+		}
 	}
-
-	/**
-	 * Adds an $or condition to the criteria, will overwrite other $or conditions
-	 * @param array $condition
-	 * @return EMongoCriteria
-	 */
-	public function addOrCondition($condition)
+	
+	public function setModel($modelClass)
 	{
-		$this->_condition['$and'][] = array('$or' => $condition);
-		return $this;
+		if(is_string($modelClass)){
+			$this->_modelClass = $modelClass;
+		}elseif($modelClass instanceof Document){
+			$this->_modelClass = get_class($modelClass);
+		}
+	}
+	
+	public function getModel()
+	{
+		if($this->_modelClass){
+			$cName = $this->_modelClass;
+			return $cName::model();
+		}
+		return null;
+	}
+	
+	public function getDbConnection()
+	{
+		if(self::$db !== null){
+			return self::$db;
+		}
+		if($this->model){
+			self::$db = $this->model->getDbConnection();
+		}else{
+			self::$db = Yii::app()->mongodb;
+		}
+		if(self::$db instanceof Client){
+			return self::$db;
+		}
+		throw new Exception(Yii::t(
+			'yii', 
+			'MongoDB Active Query requires a "mongodb" mongoyii\Client application component.'
+		));
+	}
+	
+	public function getDb()
+	{
+		return $this->getDbConnection()->selectDatabase();
 	}
 
 	/**
@@ -303,13 +422,106 @@ class Query extends CComponent
 			if(isset($criteria['limit']) && is_numeric($criteria['limit'])){
 				$this->setLimit($criteria['limit']);
 			}
-			if(isset($criteria['project']) && is_array($criteria['project'])){
-				$this->setProject(CMap::mergeArray($this->project, $criteria['project']));
+			if(isset($criteria['select']) && is_array($criteria['select'])){
+				$this->setProject(CMap::mergeArray($this->project, $criteria['select']));
 			}
 		}
 		return $this;
 	}
+	
+	public function one($db = null)
+	{
+		return $this->queryInternal($db, 'findOne');
+	}
+	
+	public function all($db = null)
+	{
+		return $this->queryInternal($db);
+	}
 
+	protected function queryInternal($db = null, $function = 'find')
+	{
+		if($db !== null){
+			self::$db = $db;
+		}
+		
+		$cursor = null;
+		
+		if(
+			$this->getDbConnection()->queryCachingCount > 0
+			&& $this->getDbConnection()->queryCachingDuration > 0
+			&& $this->getDbConnection()->queryCacheID !== false
+			&& ($cache = Yii::app()->getComponent($this->getDbConnection()->queryCacheID)) !== null
+		){
+			$this->getDbConnection()->queryCachingCount--;
+
+			$cacheKey = $cacheKey =
+				'yii:dbquery:' . $function . ':' . 
+				$this->getDbConnection()->uri . ':' . 
+				$this->getDb()->getDatabaseName() . ':' . 
+				$this->getDbConnection()->getSerialisedQuery(
+					$this->condition, 
+					$this->select, 
+					$this->sort, 
+					$this->skip, 
+					$this->limit
+				) . ':' . 
+				$this->from;
+
+			if(($result = $cache->get($cacheKey)) !== false){
+				Yii::trace('Query result found in cache', 'extensions.MongoYii.EMongoDocument');
+				
+				if($function === 'find'){
+					$cursor = new Cursor($this->model, $result[0], ['partial' => $this->select ? true : false]);
+				}elseif($function === 'findOne'){
+					$cursor = $this->model->populateRecord($result[0], true, $this->select ? true : false);
+				}else{
+					$cursor = $result[0];
+				}
+			}
+		}
+		
+		if(!$cursor){
+			
+			$res = $this->getDb()->{$this->from}->$function($this->condition, $this->options);
+			
+			if($function === 'find'){
+				$cursor = new Cursor(
+					$this->model,
+					$res, 
+					['partial' => $this->select ? true : false]
+				);
+			}elseif($function === 'findOne'){
+				$cursor = $this->model->populateRecord($res, true, $this->select ? true : false);
+			}else{
+				$cursor = $res;
+			}
+		}
+				
+		if(isset($cache, $cacheKey)){
+			$cache->set(
+				$cacheKey,
+				$cursor instanceof static ? iterator_to_array($cursor) : $cursor,
+				$this->getDbConnection()->queryCachingDuration,
+				$this->getDbConnection()->queryCachingDependency
+			);
+		}
+		return $cursor;
+	}
+
+	public function __debugInfo()
+	{
+		return CMap::mergeArray(
+			['condition' => $this->condition], 
+			$this->options
+		);
+	}
+	
+	public function __toArray($onlyCondition = false)
+	{
+		return $this->toArray($onlyCondition);
+	}
+	
 	/**
 	 * @param boolean $onlyCondition -  indicates whether to return only condition part or criteria.
 	 * Should be "true" if the criteria is used in EMongoDocument::find() and other common find methods.
@@ -321,7 +533,7 @@ class Query extends CComponent
 		if($onlyCondition === true){
 			$result = $this->condition;
 		}else{
-			foreach(array('_condition', '_limit', '_skip', '_sort', '_project') as $name){
+			foreach(array('_condition', '_limit', '_skip', '_sort', '_select') as $name){
 				$result[substr($name, 1)] = $this->$name;
 			}
 		}

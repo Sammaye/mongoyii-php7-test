@@ -2,6 +2,8 @@
 
 namespace mongoyii;
 
+use ReflectionClass;
+
 use yii;
 use CApplicationComponent;
 use CValidator;
@@ -254,12 +256,12 @@ class Client extends CApplicationComponent
 	{
 		if(
 			$this->getDocumentCache(get_class($o)) === array() && // Run reflection and cache it if not already there
-			(get_class($o) != 'EMongoDocument' && get_class($o) != 'EMongoModel') /* We can't cache the model */
+			(get_class($o) != 'Document' && get_class($o) != 'Model') /* We can't cache the model */
 		){
 			$_meta = array();
 			
 			$reflect = new ReflectionClass(get_class($o));
-			$class_vars = $reflect->getProperties(ReflectionProperty::IS_PUBLIC); // Pre-defined doc attributes
+			$class_vars = $reflect->getProperties(\ReflectionProperty::IS_PUBLIC); // Pre-defined doc attributes
 			
 			foreach($class_vars as $prop){
 				
@@ -280,7 +282,7 @@ class Client extends CApplicationComponent
 				}
 				$_meta[$prop->getName()] = $field_meta;
 			}
-			$this->_meta[get_class($o)] = $_meta;
+			$this->meta[get_class($o)] = $_meta;
 		}
 	}
 	
@@ -292,7 +294,7 @@ class Client extends CApplicationComponent
 	 */
 	public function getFieldCache($name, $include_virtual = false)
 	{
-		$doc = isset($this->_meta[$name]) ? $this->_meta[$name] : array();
+		$doc = isset($this->meta[$name]) ? $this->meta[$name] : array();
 		$fields = array();
 		
 		foreach($doc as $name => $opts){
@@ -310,7 +312,7 @@ class Client extends CApplicationComponent
 	 */
 	public function getDocumentCache($name)
 	{
-		return isset($this->_meta[$name]) ? $this->_meta[$name] : array();
+		return isset($this->meta[$name]) ? $this->meta[$name] : array();
 	}
 
 	/**

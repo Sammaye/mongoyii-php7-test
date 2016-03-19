@@ -1,10 +1,14 @@
 <?php
 
+use MongoDB\BSON\ObjectID;
+
+use mongoyii\Document;
+
 /**
  * Represents the article itself, and all of its data
  */
-class Article extends EMongoDocument{
-
+class Article extends Document
+{
 	// We are going to predefine the schema here
 	public $userId; // The user id, creator
 	public $title; // The article title
@@ -26,7 +30,8 @@ class Article extends EMongoDocument{
 	
 	public $testemc = array();
 
-	function defaultScope(){
+	public function defaultScope()
+	{
 		return array(
 			// Don't allow downvoted articles to show by default
 			// Uncomment this line to get the default scope to work
@@ -34,18 +39,21 @@ class Article extends EMongoDocument{
 		);
 	}
 
-	function collectionName(){
+	public function collectionName()
+	{
 		return 'article';
 	}
 
-	public function behaviors(){
+	public function behaviors()
+	{
 	  return array(
-  		'EMongoTimestampBehaviour' => array(
-  			'class' => 'EMongoTimestampBehaviour' // adds a nice create_time and update_time Mongodate to our docs
+  		'EMongoTimestampBehavior' => array(
+  			'class' => 'mongoyii\behaviors\TimestampBehavior' // adds a nice create_time and update_time Mongodate to our docs
   	  ));
 	}
 
-	public function relations(){
+	public function relations()
+	{
 		return array(
 			'author' => array('one','User','_id','on'=>'userId'),
 			'comments' => array('many','Comment','on' => '_id','articleId'),
@@ -60,11 +68,13 @@ class Article extends EMongoDocument{
 	 * Returns the static model of the specified AR class.
 	 * @return User the static model class
 	 */
-	public static function model($className=__CLASS__){
+	public static function model($className=__CLASS__)
+	{
 		return parent::model($className);
 	}
 
-	function rules(){
+	public function rules()
+	{
 		return array(
 			array('title,body','required'),
 			array('title','length','max'=>255),
@@ -76,7 +86,8 @@ class Article extends EMongoDocument{
 		);
 	}
 
-	function beforeSave(){
+	public function beforeSave()
+	{
 		if($this->userId===null) $this->userId = Yii::app()->user->id; // If the user id is null we just take what is in session
 
 		if(!$this->getIsNewRecord()){
@@ -91,21 +102,23 @@ class Article extends EMongoDocument{
 		return parent::beforeSave();
 	}
 
-	function afterSave(){
+	public function afterSave()
+	{
 		if($this->getIsNewRecord()){
 			//$this->author->saveCounters(array('totalArticles'=>1)); // Inc the amount of articles the user has
 		}
 		return parent::afterSave();
 	}
 
-	function afterDelete(){
+	public function afterDelete()
+	{
 		if($this->author->totalArticles>1)
 			$this->author->saveCounters(array('totalArticles'=>-1)); // deinc the amount of articles the user has
 		else{
 			$this->author->totalArticles=0; // $inc won't work with 0...I should think of a decent way to fix that...
 			$this->author->save();
 		}
-		Comment::model()->deleteAll(array('articleId'=>new MongoId($this->_id))); // Lets rid ourselves of those troll comments
+		Comment::model()->deleteAll(array('articleId'=>new ObjectID($this->_id))); // Lets rid ourselves of those troll comments
 		return parent::afterDelete();
 	}
 
@@ -118,7 +131,8 @@ class Article extends EMongoDocument{
 	 * actually supports resolving a list of ObjectIds using the $in operator. All you need to do is specify that the relation is on the "likes" or "dislikes"
 	 * field, kool eh?
 	 */
-	function like(){
+	public function like()
+	{
 		$this->updateAll(array('_id'=>$this->_id), array(
 			'$pull' => array('dislikes'=>Yii::app()->user->id),
 			'$addToSet' => array('likes' => Yii::app()->user->id)
@@ -126,7 +140,8 @@ class Article extends EMongoDocument{
 		$this->refresh(); // Probably not needed, would only be needed if you want to show the new like/dislike count in the response
 	}
 
-	function dislike(){
+	public function dislike()
+	{
 		$this->updateAll(array('_id'=>$this->_id), array(
 			'$pull' => array('likes'=>Yii::app()->user->id),
 			'$addToSet' => array('dislikes' => Yii::app()->user->id)
@@ -139,7 +154,8 @@ class Article extends EMongoDocument{
 	 * @param int $count
 	 * @return string
 	 */
-	function getBodyPreview($count=250){
+	public function getBodyPreview($count=250)
+	{
 		if(strlen($this->body)>$count)
 			return substr($this->body, 0, $count-3).'...';
 		else
