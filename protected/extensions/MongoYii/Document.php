@@ -99,7 +99,7 @@ class Document extends Model
 
 		$scopes = $this->scopes();
 		if(isset($scopes[$name])){
-			$this->setDbCriteria($this->mergeCriteria($this->getDbCriteria(), $scopes[$name]));
+			$this->setDbCriteria($this->getDbCriteria()->mergeWith($scopes[$name]));
 			return $this;
 		}
 		return parent::__call($name, $parameters);
@@ -710,7 +710,7 @@ class Document extends Model
 			$this->lastError = $this->updateByPk($this->getPrimaryKey(), $attributes);
 		}
 
-		if($this->versioned() && $this->lastError->nModified <= 0){
+		if($this->lastError->nModified <= 0){
 			return false;
 		}
 		$this->afterSave();
@@ -777,6 +777,31 @@ class Document extends Model
 		}
 		return null;
 	}
+	
+	/**
+	 * Finds one by _id
+	 * @param string|MongoId $_id
+	 * @param array|string[] $fields
+	 * @return EMongoDocument|null
+	 */
+	public function findBy_id($_id, $options = [])
+	{
+		$this->trace(__FUNCTION__);
+		$_id = $this->getPrimaryKey($_id);
+		return $this->findOne(array($this->primaryKey() => $_id), $options);
+	}
+
+	/**
+	 * An alias for findBy_id() that relates to Yiis own findByPk
+	 * @param string|MongoId $pk
+	 * @param array|string[] $fields
+	 * @return EMongoDocument|null
+	 */
+	public function findByPk($pk, $options = [])
+	{
+		$this->trace(__FUNCTION__);
+		return $this->findBy_id($pk, $options);
+	}
 
 	/**
 	 * Find one record
@@ -790,10 +815,12 @@ class Document extends Model
 
 		$this->beforeFind(); // Apparently this is applied before even scopes...
 		
-		$query = new Query;
-		//$query->mergeWith($this->getDbCriteria());
-
-		$query->andCondition($filter);
+		$query = $this->getDbCriteria();
+		if($filter instanceof Query){
+			$query->mergeWith($this->getDbCriteria());
+		}else{
+			$query->andCondition($filter);
+		}
 		$query->parseOptions($options);
 		$query->model = $this;
 
@@ -807,9 +834,9 @@ class Document extends Model
 	 * @param array|string[] $fields
 	 * @return EMongoCursor|EMongoDocument[]
 	 */
-	public function findAll($criteria = array(), $fields = array())
+	public function findAll($filter = [], $options = [])
 	{
-		return $this->find($criteria, $fields);
+		return $this->find($filter, $options);
 	}
 	
 	/**
@@ -818,9 +845,9 @@ class Document extends Model
 	 * @param array|string[] $fields
 	 * @return EMongoCursor|EMongoDocument[]
 	 */
-	public function findAllByAttributes($criteria = array(), $fields = array())
+	public function findAllByAttributes($filter = [], $options = [])
 	{
-		return $this->find($criteria, $fields);
+		return $this->find($filter, $options);
 	}
 
 	/**
@@ -830,7 +857,7 @@ class Document extends Model
 	 * @return EMongoCursor|EMongoDocument[]
 	 * @throws EMongoException
 	 */
-	public function findAllByPk($pk, $fields = array())
+	public function findAllByPk($pk, $options = [])
 	{
 		if(is_string($pk) || $pk instanceof MongoId){
 			return $this->find(array($this->primaryKey() => $this->getPrimaryKey($pk)), $fields);
@@ -841,7 +868,7 @@ class Document extends Model
 		foreach($pk as $key => $value){
 			$pk[$key] = $this->getPrimaryKey($value);
 		}
-		return $this->find(array($this->primaryKey() => array('$in' => $pk)), $fields);
+		return $this->find(array($this->primaryKey() => array('$in' => $pk)), $options);
 	}
 
 	/**
@@ -856,40 +883,17 @@ class Document extends Model
 
 		$this->beforeFind(); // Apparently this is applied before even scopes...
 		
-		$query = new Query;
-		//$query->mergeWith($this->getDbCriteria());
-
-		$query->andCondition($filter);
+		$query = $this->getDbCriteria();
+		if($filter instanceof Query){
+			$query->mergeWith($this->getDbCriteria());
+		}else{
+			$query->andCondition($filter);
+		}
 		$query->parseOptions($options);
 		$query->model = $this;
 
 		$this->resetScope(false);
 		return $query->all();
-	}
-
-	/**
-	 * Finds one by _id
-	 * @param string|MongoId $_id
-	 * @param array|string[] $fields
-	 * @return EMongoDocument|null
-	 */
-	public function findBy_id($_id, $fields = array())
-	{
-		$this->trace(__FUNCTION__);
-		$_id = $this->getPrimaryKey($_id);
-		return $this->findOne(array($this->primaryKey() => $_id), $fields);
-	}
-
-	/**
-	 * An alias for findBy_id() that relates to Yiis own findByPk
-	 * @param string|MongoId $pk
-	 * @param array|string[] $fields
-	 * @return EMongoDocument|null
-	 */
-	public function findByPk($pk, $fields = array())
-	{
-		$this->trace(__FUNCTION__);
-		return $this->findBy_id($pk, $fields);
 	}
 
 	/**
@@ -899,17 +903,42 @@ class Document extends Model
 	 * @param array $options
 	 * @return mixed
 	 */
-	public function deleteByPk($pk, $criteria = array(), $options = array())
+	public function deleteByPk($pk, $criteria = [], $options = [])
+	{
+		$this->trace(__FUNCTION__);
+		
+		if(!$criteria instanceof Query){
+			$criteria = new Query(['condition' => $criteria]);
+		}
+		$criteria->parseOptions($options);
+		$criteria->andCondition([$this->primaryKey() => $this->getPrimaryKey($pk)]);
+
+		$result = $this->getCollection()->deleteOne(
+			$criteria->getCondition(), 
+			$criteria->getOptions()
+		);
+		return $result;
+	}
+	
+	/**
+	 * Delete all records matching a criteria
+	 * @param array|EMongoCriteria $criteria
+	 * @param array $options
+	 * @return mixed
+	 */
+	public function deleteAll($criteria = [], $options = [])
 	{
 		$this->trace(__FUNCTION__);
 
-		if($criteria instanceof Query){
-			$criteria = $criteria->getCondition();
+		if(!$criteria instanceof Query){
+			$criteria = new Query(['condition' => $criteria]);
 		}
-		$pk = $this->getPrimaryKey($pk);
+		$criteria->parseOptions($options);
 
-		$query=array_merge(array($this->primaryKey() => $pk), $criteria);
-		$result = $this->getCollection()->deleteOne($query, $options);
+		$result = $this->getCollection()->deleteMany(
+			$criteria->getCondition(), 
+			$criteria->getOptions()
+		);
 		return $result;
 	}
 
@@ -921,19 +950,21 @@ class Document extends Model
 	 * @param array $options
 	 * @return bool
 	 */
-	public function updateByPk($pk, $updateDoc = array(), $criteria = array(), $options = array())
+	public function updateByPk($pk, $updateDoc = [], $criteria = [], $options = [])
 	{
 		$this->trace(__FUNCTION__);
-
-		if($criteria instanceof Query){
-			$criteria = $criteria->getCondition();
+		
+		if(!$criteria instanceof Query){
+			$criteria = new Query(['condition' => $criteria]);
 		}
-		$pk = $this->getPrimaryKey($pk);
+		$criteria->parseOptions($options);
+		$criteria->andCondition([$this->primaryKey() => $this->getPrimaryKey($pk)]);
 
-		$query=$this->mergeCriteria($criteria, array($this->primaryKey() => $pk));
-
-		$result = $this->getCollection()->updateOne($query, $updateDoc, $options);
-
+		$result = $this->getCollection()->updateOne(
+			$criteria->getCondition(), 
+			$updateDoc, 
+			$criteria->getOptions()
+		);
 		return $result;
 	}
 
@@ -944,36 +975,20 @@ class Document extends Model
 	 * @param array $options
 	 * @return bool
 	 */
-	public function updateAll($criteria = array(), $updateDoc = array(), $options = array('multiple' => true))
+	public function updateAll($criteria = [], $updateDoc = [], $options = ['multiple' => true])
 	{
 		$this->trace(__FUNCTION__);
-
-		if($criteria instanceof Query){
-			$criteria = $criteria->getCondition();
+		
+		if(!$criteria instanceof Query){
+			$criteria = new Query(['condition' => $criteria]);
 		}
-		$options = array_merge($this->getDbConnection()->getDefaultWriteConcern(), $options);
-
-		$result = $this->getCollection()->updateMany($criteria, $updateDoc, $options);
-
-		return $result;
-	}
-
-	/**
-	 * Delete all records matching a criteria
-	 * @param array|EMongoCriteria $criteria
-	 * @param array $options
-	 * @return mixed
-	 */
-	public function deleteAll($criteria = array(), $options = array())
-	{
-		$this->trace(__FUNCTION__);
-
-		if($criteria instanceof Query){
-			$criteria = $criteria->getCondition();
-		}
-
-		$result = $this->getCollection()->deleteMany($criteria, $options);
-
+		$criteria->parseOptions($options);
+		
+		$result = $this->getCollection()->updateMany(
+			$criteria->getCondition(), 
+			$updateDoc, 
+			$criteria->getOptions()
+		);
 		return $result;
 	}
 
@@ -1017,19 +1032,21 @@ class Document extends Model
 	 * @param EMongoCriteria|array $criteria
 	 * @return int
 	 */
-	public function count($criteria = array())
+	public function count($criteria = [], $options = [])
 	{
 		$this->trace(__FUNCTION__);
 
-		// If we provide a manual criteria via EMongoCriteria or an array we do not use the models own DbCriteria
-		if (is_array($criteria) && empty($criteria)){
-			$criteria = $this->getDbCriteria();
-			$criteria = (isset($criteria['condition']) ? $criteria['condition'] : array());
+		if(!$criteria instanceof Query){
+			$criteria = $this->getDbCriteria()->andCondition(['condition' => $criteria]);
+		}else{
+			$criteria->mergeWith($this->getDbCriteria());
 		}
-		if($criteria instanceof Query){
-			$criteria = $criteria->getCondition();
-		}
-		return $this->getCollection()->count($criteria);
+		$criteria->parseOptions($options);
+
+		return $this->getCollection()->count(
+			$criteria->getCondition(), 
+			$criteria->getOptions()
+		);
 	}
 
 	/**
@@ -1117,12 +1134,19 @@ class Document extends Model
 	public function distinct($fieldName, $filter = [], array $options = [])
 	{
 		$this->trace(__FUNCTION__);
-		$c = $this->getDbCriteria();
-		if(is_array($c) && isset($c['condition']) && !empty($c['condition'])){
-			$filter = CMap::mergeArray($filter, $c['condition']);
+
+		$criteria = $this->getDbCriteria();
+		if($filter instanceof Query){
+			$criteria->mergeWith($filter);
+		}else{
+			$criteria->mergeWith(['condition' => $filter]);
 		}
 
-		return $this->getCollection()->distinct($fieldName, $filter, $options);
+		return $this->getCollection()->distinct(
+			$fieldName, 
+			$criteria->getCondition(), 
+			$options
+		);
 	}
 
 	/**
@@ -1239,9 +1263,7 @@ class Document extends Model
 	{
 		if($this->_criteria === null){
 			if(($c = $this->defaultScope()) !== array() || $createIfNull){
-				$this->_criteria = $c;
-			}else{
-				return array();
+				$this->_criteria = new Query($c);
 			}
 		}
 		return $this->_criteria;
@@ -1258,36 +1280,12 @@ class Document extends Model
 	}
 
 	/**
-	 * Merges the current DB Criteria with the inputted one
-	 * @param array|EMongoCriteria $newCriteria
-	 * @return array
-	 */
-	public function mergeDbCriteria($newCriteria)
-	{
-		if($newCriteria instanceof Query){
-			$newCriteria = $newCriteria->toArray();
-		}
-		return $this->setDbCriteria($this->mergeCriteria($this->getDbCriteria(), $newCriteria));
-	}
-
-	/**
 	 * Gets the collection for this model
 	 * @return MongoCollection
 	 */
 	public function getCollection()
 	{
 		return $this->getDbConnection()->selectDatabase()->{$this->collectionName()};
-	}
-
-	/**
-	 * Merges two criteria objects. Best used for scopes
-	 * @param array $oldCriteria
-	 * @param array $newCriteria
-	 * @return array
-	 */
-	public function mergeCriteria($oldCriteria, $newCriteria)
-	{
-		return CMap::mergeArray($oldCriteria, $newCriteria);
 	}
 
 	/**
