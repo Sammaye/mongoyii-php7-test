@@ -423,7 +423,7 @@ class Query extends CComponent
 				$this->setLimit($criteria['limit']);
 			}
 			if(isset($criteria['select']) && is_array($criteria['select'])){
-				$this->setProject(CMap::mergeArray($this->project, $criteria['select']));
+				$this->setSelect(CMap::mergeArray($this->select, $criteria['select']));
 			}
 		}
 		return $this;

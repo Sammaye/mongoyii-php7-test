@@ -1,5 +1,7 @@
 <?php
 
+use MongoDB\BSON\UTCDateTime;
+
 if($model===null){
 	throw new CHttpException(404, 'Could not find the article you were looking for');
 	return;
@@ -92,7 +94,7 @@ Yii::app()->getClientScript()->registerScript('addComment', $d);
 						else
 							echo $revision['userId'];
 					?> at
-					<?php echo date('d/m/Y h:i:s',$revision['time']->sec) ?>
+					<?php echo $revision['time']->toDateTime()->format('d/m/Y h:i:s') ?>
 				</li>
 			<?php } ?>
 		</ul>
@@ -113,8 +115,8 @@ Yii::app()->getClientScript()->registerScript('addComment', $d);
 	<ul class='side_menu menu_separated'>
 		<li><b>Written by</b>: <?php echo CHtml::link($model->author->username,array('user/view','id'=>$model->author->_id)) ?></li>
 		<li><b>Views</b>: <?php echo $model->views ?></li>
-		<li><b>Created on</b>: <?php echo date('d/m/Y h:i:s a',$model->create_time->sec) ?></li>
-		<li><b>Last Updated</b>: <?php echo $model->update_time instanceof MongoDate ? date('d/m/Y h:i:s a',$model->create_time->sec) : '<i>never</i>' ?>
+		<li><b>Created on</b>: <?php echo $model->create_time->toDateTime()->format('d/m/Y h:i:s a') ?></li>
+		<li><b>Last Updated</b>: <?php echo $model->update_time instanceof UTCDateTime ? $model->create_time->toDateTime()->format('d/m/Y h:i:s a') : '<i>never</i>' ?>
 	</ul>
 
 	<?php if($model->usersLiked && $model->usersLiked->count()>0){

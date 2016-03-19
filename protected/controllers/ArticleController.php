@@ -1,5 +1,7 @@
 <?php
 
+use MongoDB\BSON\ObjectID;
+
 /**
  * Represents an actual wiki article
  */
@@ -117,7 +119,7 @@ class ArticleController extends CController{
 	 */
 	public function actionView($id){
 		// Remove resetScope here to see the default scope in action
-		$model=Article::model()->resetScope()->findOne(array('_id'=>new MongoId($id)));
+		$model=Article::model()->resetScope()->findOne(array('_id'=>new ObjectID($id)));
 		if($model) $model->saveCounters(array('views'=>1)); // We viewed this article
 		$this->render('view',array('model'=>$model));
 	}

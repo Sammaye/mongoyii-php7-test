@@ -1,10 +1,14 @@
 <?php
 
+use mongoyii\Document;
+use mongoyii\Query;
+use mongoyii\DataProvider;
+
 /**
  * Represents the user and his/her data
  */
-class User extends EMongoDocument{
-
+class User extends Document
+{
 	/** @virtual */
 	public $avatar;
 
@@ -21,7 +25,8 @@ class User extends EMongoDocument{
 
 	public $ex_sub = array();
 
-	public function groups(){
+	public function groups()
+	{
 		return array(
 			'User',
 			'VIP',
@@ -29,14 +34,16 @@ class User extends EMongoDocument{
 		);
 	}
 
-	public function behaviors(){
+	public function behaviors()
+	{
 	  return array(
   		'EMongoTimestampBehaviour' => array(
-  			'class' => 'EMongoTimestampBehaviour' // Adds a handy create_time and update_time
+  			'class' => 'mongoyii\behaviors\TimestampBehavior' // Adds a handy create_time and update_time
   	  ));
 	}
 
-	function rules(){
+	public function rules()
+	{
 		return array(
 			array('username,email,password', 'required'),
 			array('username', 'length', 'max' => 20),
@@ -57,11 +64,13 @@ class User extends EMongoDocument{
 		);
 	}
 
-	function collectionName(){
+	public function collectionName()
+	{
 		return 'user';
 	}
 
-	function relations(){
+	public function relations()
+	{
 		return array(
 			'articles' => array('many','Article','userId'),
 			'comments' => array('many','Comment','userId')
@@ -77,20 +86,22 @@ class User extends EMongoDocument{
 		return parent::model($className);
 	}
 
-	public function attributeLabels(){
+	public function attributeLabels()
+	{
 		return array(
 			'profile[title]' => 'First title'
 		);
 	}
 
-	public function search($query = array(), $project = array(), $partialMatch = false, $sort = array()){
-		$criteria = new EMongoCriteria;
+	public function search($query = array(), $project = array(), $partialMatch = false, $sort = array())
+	{
+		$criteria = new Query;
 
 		//if($this->_id!==null)
 			//$criteria->compare('_id', new MongoId($this->_id));
 		//$criteria->compare('__v', $this->__v);
 		$criteria->compare('username', $this->username, true);
-		return new EMongoDataProvider(get_class($this), array(
+		return new DataProvider(get_class($this), array(
 			'criteria' => $criteria,
 			'sort' => array(
 				'attributes' => array(
@@ -100,18 +111,19 @@ class User extends EMongoDocument{
 				'defaultOrder' => array('username' => -1)
 			)
 		));
-
 	}
 
 	/**
 	 * Hashes our password, taken straight from the tutorial
 	 * @return string
 	 */
-	function hashPassword(){
+	public function hashPassword()
+	{
 		return crypt($this->password,$this->blowfishSalt());
 	}
 
-	function beforeSave(){
+	public function beforeSave()
+	{
 		$this->password=$this->hashPassword(); // lets hash that shiz
 		return parent::beforeSave();
 	}
@@ -124,7 +136,7 @@ class User extends EMongoDocument{
 	 * @throws Exception on invalid cost parameter.
 	 * @return string A Blowfish hash salt for use in PHP's crypt()
 	 */
-	function blowfishSalt($cost = 13)
+	public function blowfishSalt($cost = 13)
 	{
 		if (!is_numeric($cost) || $cost < 4 || $cost > 31) {
 			throw new Exception("cost parameter must be between 4 and 31");

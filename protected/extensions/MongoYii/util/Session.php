@@ -150,7 +150,7 @@ class Session extends CHttpSession
 				'data' => $data,
 				'expire' => $expire
 			)), array('upsert' => true));
-			return $res->nUpserted > 0 || $res->nModified > 0;
+			return $res->getUpsertedCount() > 0 || $res->getModifiedCount() > 0;
 		}catch(Exception $e){
 			if(YII_DEBUG){
 				echo $e->getMessage();

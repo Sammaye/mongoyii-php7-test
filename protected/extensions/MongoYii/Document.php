@@ -156,7 +156,7 @@ class Document extends Model
 	 */
 	public function resetScope($resetDefault = true)
 	{
-		$this->_criteria = ($resetDefault ? array() : null);
+		$this->_criteria = ($resetDefault ? new Query() : null);
 		return $this;
 	}
 
@@ -639,7 +639,7 @@ class Document extends Model
 
 		$this->lastError = $this->getCollection()->insertOne($document);
 
-		if($this->lastError->nInserted > 0){
+		if($this->lastError->getInsertedCount() > 0){
 			$this->afterSave();
 			$this->setIsNewRecord(false);
 			$this->setScenario('update');
@@ -710,7 +710,7 @@ class Document extends Model
 			$this->lastError = $this->updateByPk($this->getPrimaryKey(), $attributes);
 		}
 
-		if($this->lastError->nModified <= 0){
+		if($this->lastError->getModifiedCount() <= 0){
 			return false;
 		}
 		$this->afterSave();

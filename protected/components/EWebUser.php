@@ -1,5 +1,7 @@
 <?php
 
+use MongoDB\BSON\ObjectID;
+
 /**
  * This is a custom CWebUser designed to to be used with the UserIdentity in this folder and the 
  * EMongoSession to provide full MongoDB user sessions
@@ -23,7 +25,7 @@ class EWebUser extends CWebUser{
     protected function loadUser()
     {
         if ( $this->_model === null ) {
-                $this->_model = User::model()->findByPk( $this->id );
+                $this->_model = User::model()->findByPk( new ObjectID($this->id) );
         }
         return $this->_model;
     }

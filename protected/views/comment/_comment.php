@@ -25,7 +25,7 @@ Yii::app()->getClientScript()->registerScript('deleteComment', $js);
 
 ?>
 <div class="comment">
-	<div><?php echo CHtml::link($model->author->username, array('user/view','id'=>$model->author->_id)) ?> on <?php echo date('d/m/Y h:i:sa', $model->create_time->sec) ?>
+	<div><?php echo CHtml::link($model->author->username, array('user/view','id'=>$model->author->_id)) ?> on <?php echo $model->create_time->toDateTime()->format('d/m/Y h:i:sa') ?>
 		<?php if(Yii::app()->user->isAdmin()||(string)Yii::app()->user->id===(string)$model->userId){
 			echo CHtml::link('Delete',array('comment/delete','id'=>$model->_id),array('class'=>'delete'));
 		} ?>

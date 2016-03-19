@@ -1,7 +1,7 @@
 <div class="container user_profile_container">
 <div class="span-20">
 	<h1><?php echo $model->username ?></h1>
-	<div>Joined: <?php echo date('d/m/Y h:i:sa',$model->create_time->sec) ?></div>
+	<div>Joined: <?php echo $model->create_time->toDateTime()->format('d/m/Y h:i:sa') ?></div>
 	
 	<?php if($model->totalArticles>0){ ?>
 		<h2><?php echo $model->totalArticles>1?$model->totalArticles.' articles':$model->totalArticles.' article' ?></h2>

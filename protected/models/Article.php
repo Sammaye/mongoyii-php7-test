@@ -88,13 +88,13 @@ class Article extends Document
 
 	public function beforeSave()
 	{
-		if($this->userId===null) $this->userId = Yii::app()->user->id; // If the user id is null we just take what is in session
+		if($this->userId===null) $this->userId = new ObjectID(Yii::app()->user->id); // If the user id is null we just take what is in session
 
 		if(!$this->getIsNewRecord()){
 			// If this is not a new recrd then it is being edited
 			// Lets form a subdocument for revisions and place it in
 			$revision = array(
-				'userId' => empty(Yii::app()->user->id) ? Yii::app()->request->getUserHostAddress() : Yii::app()->user->id,
+				'userId' => empty(Yii::app()->user->id) ? Yii::app()->request->getUserHostAddress() : new ObjectID(Yii::app()->user->id),
 				'time' => new MongoDate()
 			);
 			$this->revisions[]=$revision;
@@ -134,8 +134,8 @@ class Article extends Document
 	public function like()
 	{
 		$this->updateAll(array('_id'=>$this->_id), array(
-			'$pull' => array('dislikes'=>Yii::app()->user->id),
-			'$addToSet' => array('likes' => Yii::app()->user->id)
+			'$pull' => array('dislikes'=> new ObjectID(Yii::app()->user->id)),
+			'$addToSet' => array('likes' => new ObjectID(Yii::app()->user->id))
 		));
 		$this->refresh(); // Probably not needed, would only be needed if you want to show the new like/dislike count in the response
 	}
@@ -143,8 +143,8 @@ class Article extends Document
 	public function dislike()
 	{
 		$this->updateAll(array('_id'=>$this->_id), array(
-			'$pull' => array('likes'=>Yii::app()->user->id),
-			'$addToSet' => array('dislikes' => Yii::app()->user->id)
+			'$pull' => array('likes'=> new ObjectID(Yii::app()->user->id)),
+			'$addToSet' => array('dislikes' => new ObjectID(Yii::app()->user->id))
 		));
 		$this->refresh();
 	}

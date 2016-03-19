@@ -22,7 +22,7 @@ class UserIdentity extends CUserIdentity
 		} else if ($record->password !== crypt($this->password, $record->password)) { // check crypted password against the one provided
 			$this->errorCode = self::ERROR_PASSWORD_INVALID;
 		} else {
-			$this->_id = $record->_id;
+			$this->_id = (String)$record->_id;
 			$this->errorCode = self::ERROR_NONE;
 		}
 		return !$this->errorCode;

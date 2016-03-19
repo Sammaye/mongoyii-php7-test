@@ -71,6 +71,10 @@ class DataProvider extends CActiveDataProvider
 		foreach($config as $key => $value){
 			$this->$key = $value;
 		}
+		
+		if(!$this->getCriteria()){
+			$this->setCriteria(new Query);
+		}
 	}
 
 	/**
@@ -145,11 +149,8 @@ class DataProvider extends CActiveDataProvider
 	 */
 	public function calculateTotalItemCount()
 	{
-		if(!$this->_cursor){
-			$criteria = $this->getCriteria();
-			$this->_cursor = $this->model->count($criteria->getCondition());
-		}
-		return $this->_cursor->count();
+		$criteria = $this->getCriteria();
+		return $this->model->count($criteria->getCondition());
 	}
 
 	public function setSort($value)

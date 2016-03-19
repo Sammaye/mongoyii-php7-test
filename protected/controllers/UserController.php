@@ -1,4 +1,7 @@
 <?php
+
+use MongoDB\BSON\ObjectID;
+
 /**
  * This represents the user actions
  */
@@ -56,7 +59,7 @@ class UserController extends Controller
 			$model->attributes=$_POST['User'];
 			if($model->validate()&&$model->save()){
 				$identity=new UserIdentity($model->username,'');
-				$identity->setId($model->_id); // we set the id of the identity to the _id of the user
+				$identity->setId((String)$model->_id); // we set the id of the identity to the _id of the user
 				$identity->errorCode=UserIdentity::ERROR_NONE;
 				if(Yii::app()->user->login($identity,0)){
 					$this->redirect('site/index');
@@ -69,11 +72,10 @@ class UserController extends Controller
 	}
 	
 	public function actionEdit(){
-		
-		$model=User::model()->findOne(array('_id'=>Yii::app()->user->id));
+		$model=User::model()->findOne(array('_id'=> new ObjectID(Yii::app()->user->id)));
 		if($model===null)
 			throw new CHttpException(403, 'You are not logged in');
-		
+		/*
 		if($file=EMongoFile::populate($model,'avatar')){
 			if($oldFile=EMongoFile::model()->findOne(array('userId'=>Yii::app()->user->id)))
 				$oldFile->delete();
@@ -82,7 +84,7 @@ class UserController extends Controller
 				Yii::app()->user->setFlash('success', "Avatar Changed!");
 			}				
 		}
-		
+		*/
 		if(isset($_POST['User'])){
 			$model->attributes=$_POST['User'];
 			if($model->validate()){

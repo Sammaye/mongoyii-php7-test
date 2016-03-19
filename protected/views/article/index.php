@@ -1,9 +1,15 @@
+<?php 
+
+use mongoyii\DataProvider;
+
+?>
+
 <div class="container view_articles_container">
 <h1>Wiki Articles</h1>
 <div class="span-18">
 <?php
 
-$dataProvider=new EMongoDataProvider('Article');
+$dataProvider=new DataProvider('Article');
 
 $this->widget('zii.widgets.CListView', array(
     'dataProvider'=>$dataProvider,

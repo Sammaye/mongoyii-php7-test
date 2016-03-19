@@ -1,16 +1,19 @@
 <?php
 
+use mongoyii\Model;
+
 /**
  * This model represents an article reference. These are basically URLs for support the facts within the article.
  * 
  * This will be stored as a subdocument on the article record.
  */
-class ArticleReference extends EMongoModel{
-
+class ArticleReference extends Model
+{
 	public $caption;
 	public $url;
 	
-	public function rules(){
+	public function rules()
+	{
 		return array(
 			array('caption,url','required'),
 			array('caption','length','max'=>255),
@@ -19,7 +22,8 @@ class ArticleReference extends EMongoModel{
 		);
 	}
 	
-	public function renderUrl(){
+	public function renderUrl()
+	{
 		echo CHtml::link($caption,$url);
 	}
 }

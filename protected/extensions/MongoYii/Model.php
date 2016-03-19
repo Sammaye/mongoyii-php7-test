@@ -445,7 +445,8 @@ class Model extends CModel
 			// It is just one _id
 			$clause = array_merge($where, array($fkey => $pk));
 		}
-
+		
+		$cname = '\\' . ltrim($cname, '\\');
 		$o = $cname::model($cname);
 		if($relation[0] === 'one'){
 			// Lets find it and return it
