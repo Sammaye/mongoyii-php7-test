@@ -12,6 +12,7 @@ use MongoDB\Client;
 use MongoDB\Database as DriverDatabase;
 use MongoDB\Driver\WriteConcern;
 use MongoDB\Driver\ReadPreference;
+use MongoDB\BSON\ObjectID;
 
 use mongoyii\Database;
 use mongoyii\Collection;
@@ -337,7 +338,7 @@ class Client extends CApplicationComponent
 		for($i = 0; $i < 12; $i ++){
 			$id .= sprintf("%02X", ord($bin[$i]));
 		}
-		return new MongoID($id);
+		return new ObjectID($id);
 	}
 
 	/**

@@ -357,7 +357,7 @@ class Query extends CComponent
 			$value = $matches[2];
 			$op = $matches[1];
 			if($partialMatch === true){
-				$value = new Regex("/$value/i");
+				$value = new Regex("$value", 'i');
 			}else{
 				if(
 					!is_bool($value) && !is_array($value) && preg_match('/^([0-9]|[1-9]{1}\d+)$/' /* Will only match real integers, unsigned */, $value) > 0

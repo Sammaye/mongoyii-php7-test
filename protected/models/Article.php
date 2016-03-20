@@ -1,6 +1,7 @@
 <?php
 
 use MongoDB\BSON\ObjectID;
+use MongoDB\BSON\UTCDateTime;
 
 use mongoyii\Document;
 
@@ -82,7 +83,7 @@ class Article extends Document
 				
 			//array(''),
 
-			array('title', 'safe', 'on' => 'search') // search by title
+			array('title,body', 'safe', 'on' => 'search') // search by title
 		);
 	}
 
@@ -95,7 +96,7 @@ class Article extends Document
 			// Lets form a subdocument for revisions and place it in
 			$revision = array(
 				'userId' => empty(Yii::app()->user->id) ? Yii::app()->request->getUserHostAddress() : new ObjectID(Yii::app()->user->id),
-				'time' => new MongoDate()
+				'time' => new UTCDateTime(time()*1000)
 			);
 			$this->revisions[]=$revision;
 		}

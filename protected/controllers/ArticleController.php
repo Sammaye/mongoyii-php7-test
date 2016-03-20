@@ -79,7 +79,7 @@ class ArticleController extends CController{
 	 * @param string $id
 	 */
 	public function actionEdit($id){
-		$model=Article::model()->findOne(array('_id'=>new MongoId($id)));
+		$model=Article::model()->findOne(array('_id'=>new ObjectID($id)));
 		if($model&&isset($_POST['Article'])){
 			$model->attributes=$_POST['Article'];
 			if($model->validate()&&$model->save()){
@@ -131,7 +131,7 @@ class ArticleController extends CController{
 	 */
 	public function actionDelete($id){
 		if(Yii::app()->request->isPostRequest){
-			$model=Article::model()->findOne(array('_id'=>new MongoId($id)));
+			$model=Article::model()->findOne(array('_id'=>new ObjectID($id)));
 
 			if(!$model){
 				echo "That Article does not exist!";
@@ -153,7 +153,11 @@ class ArticleController extends CController{
 	 * since we do not always require a $term to be entered we do not require is as dependancy to this function
 	 */
 	public function actionSearch(){
-		$model=new Article;
+		$model=new Article('search');
+		$model->unsetAttributes();  // clear any default values
+		if(isset($_GET['term'])){
+			$model->title=$_GET['term'];
+		}
 		$this->render('search',array('model'=>$model));
 	}
 

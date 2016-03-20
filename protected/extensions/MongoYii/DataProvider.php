@@ -123,8 +123,10 @@ class DataProvider extends CActiveDataProvider
 				$criteria->sort = $sort;
 			}
 		}
+
+		$c = $this->model->find($criteria);
 		return iterator_to_array(
-			$this->model->find($criteria), 
+			$c, 
 			false
 		);
 	}

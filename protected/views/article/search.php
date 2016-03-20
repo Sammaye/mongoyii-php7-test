@@ -3,7 +3,7 @@
 <h1>Search results for <?php echo CHtml::encode(isset($_GET['term'])&&strlen($_GET['term'])>0?$_GET['term']:'everything') ?></h1>
 
 <?php
-$dataProvider=$model->search(isset($_GET['term']) ? $_GET['term'] : '');
+$dataProvider=$model->search([], [], true);
 
 $this->widget('zii.widgets.CListView', array(
 		'dataProvider'=>$dataProvider,

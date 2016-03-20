@@ -59,13 +59,13 @@ class Comment extends Document
 		return array(
 			array('body,articleId', 'required'),
 			array('body', 'length', 'max' => 500),
-			array('articleId','EMongoExistValidator', 'className'=>'Article', 'attributeName'=>'_id', 'mongoId'=>true)
+			array('articleId','mongoyii\validators\ExistValidator', 'className'=>'Article', 'attributeName'=>'_id', 'mongoId'=>true)
 		);
 	}
 
 	public function beforeSave()
 	{
-		if($this->userId===null) $this->userId = Yii::app()->user->id; // If there is no user id here lets just add the one in session
+		if($this->userId===null) $this->userId = new ObjectID(Yii::app()->user->id); // If there is no user id here lets just add the one in session
 		$this->articleId=new ObjectID($this->articleId);
 		return parent::beforeSave();
 	}

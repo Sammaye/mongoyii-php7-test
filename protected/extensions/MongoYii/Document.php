@@ -690,8 +690,9 @@ class Document extends Model
 			$version = $this->{$this->versionField()};
 			$attributes[$this->versionField()] = $this->{$this->versionField()} = $this->{$this->versionField()} > 0 ? $this->{$this->versionField()} + 1 : 1;
 
+			$attributes = array('$set' => $attributes);
+
 			if($partial === true){ // If this is a partial docuemnt we use $set to replace that partial view
-				$attributes = array('$set' => $attributes);
 				if(!isset($this->_projected_fields[$this->versionField()])){
 					// We cannot rely on a partial document containing the version
 					// as such it has been disabled for partial documents
@@ -704,9 +705,7 @@ class Document extends Model
 				['multiple' => false]
 			);
 		}else{
-			if($partial === true){ // If this is a partial docuemnt we use $set to replace that partial view
-				$attributes = array('$set' => $attributes);
-			}
+			$attributes = array('$set' => $attributes);
 			$this->lastError = $this->updateByPk($this->getPrimaryKey(), $attributes);
 		}
 
@@ -859,7 +858,7 @@ class Document extends Model
 	 */
 	public function findAllByPk($pk, $options = [])
 	{
-		if(is_string($pk) || $pk instanceof MongoId){
+		if(is_string($pk) || $pk instanceof ObjectID){
 			return $this->find(array($this->primaryKey() => $this->getPrimaryKey($pk)), $fields);
 		}
 		if(!is_array($pk)){
@@ -1037,7 +1036,7 @@ class Document extends Model
 		$this->trace(__FUNCTION__);
 
 		if(!$criteria instanceof Query){
-			$criteria = $this->getDbCriteria()->andCondition(['condition' => $criteria]);
+			$criteria = $this->getDbCriteria()->andCondition($criteria);
 		}else{
 			$criteria->mergeWith($this->getDbCriteria());
 		}
@@ -1071,7 +1070,7 @@ class Document extends Model
 					$value = $matches[2];
 					$op = $matches[1];
 					if($partialMatch === true){
-						$value = new Regex("/$value/i");
+						$value = new Regex("$value", 'i');
 					}else{
 						if(
 							!is_bool($value) && !is_array($value) && preg_match('/^([0-9]|[1-9]{1}\d+)$/' /* Will only match real integers, unsigned */, $value) > 0
@@ -1108,6 +1107,7 @@ class Document extends Model
 				}
 			}
 		}
+		
 		return new DataProvider($this, [
 			'criteria' => [
 				'condition' => $query, 
