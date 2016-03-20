@@ -2,7 +2,7 @@
 
 use MongoDB\BSON\ObjectID;
 
-use mongoyii\Document;
+use sammaye\mongoyii\Document;
 
 /**
  * Represents a comment and its data
@@ -33,7 +33,7 @@ class Comment extends Document
 	{
 	  return array(
   		'EMongoTimestampBehaviour' => array(
-  			'class' => 'mongoyii\behaviors\TimestampBehavior' // Adds a handy create_time and update_time
+  			'class' => 'sammaye\mongoyii\behaviors\TimestampBehavior' // Adds a handy create_time and update_time
   	  ));
 	}
 

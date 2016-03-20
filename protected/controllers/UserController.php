@@ -2,7 +2,7 @@
 
 use MongoDB\BSON\ObjectID;
 
-use mongoyii\File;
+use sammaye\mongoyii\File;
 
 /**
  * This represents the user actions

@@ -3,7 +3,7 @@
 use MongoDB\BSON\ObjectID;
 use MongoDB\BSON\UTCDateTime;
 
-use mongoyii\Document;
+use sammaye\mongoyii\Document;
 
 /**
  * Represents the article itself, and all of its data
@@ -49,7 +49,7 @@ class Article extends Document
 	{
 	  return array(
   		'EMongoTimestampBehavior' => array(
-  			'class' => 'mongoyii\behaviors\TimestampBehavior' // adds a nice create_time and update_time Mongodate to our docs
+  			'class' => 'sammaye\mongoyii\behaviors\TimestampBehavior' // adds a nice create_time and update_time Mongodate to our docs
   	  ));
 	}
 

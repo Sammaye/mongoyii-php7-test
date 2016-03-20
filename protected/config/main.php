@@ -5,7 +5,6 @@ use MongoDB\Driver\ReadPreference;
 
 // uncomment the following to define a path alias
 // Yii::setPathOfAlias('local','path/to/local-folder');
-Yii::setPathOfAlias('mongoyii', dirname(dirname(__FILE__)) . '/extensions/MongoYii');
 
 // This is the main Web application configuration. Any writable
 // CWebApplication properties can be configured here.
@@ -39,12 +38,12 @@ return array(
 	'components'=>array(
 
 		'session' => array(
-			'class' => 'mongoyii\util\Session',
+			'class' => 'sammaye\mongoyii\util\Session',
 		),
 
 
 		'cache' => array(
-			'class' => 'mongoyii\util\Cache',
+			'class' => 'sammaye\mongoyii\util\Cache',
 		),
 
 		'user'=>array(
@@ -65,7 +64,7 @@ return array(
 		),
 		
 		'mongodb' => array(
-			'class' => 'mongoyii\Client',
+			'class' => 'sammaye\mongoyii\Client',
 			'uri' => 'mongodb://sam:blah@localhost:27017/admin',
 			'options' => [],
 			'driverOptions' => [],

@@ -6,5 +6,6 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
+    'sammaye\\mongoyii\\' => array($vendorDir . '/sammaye/mongoyii-php7'),
     'MongoDB\\' => array($vendorDir . '/mongodb/mongodb/src'),
 );

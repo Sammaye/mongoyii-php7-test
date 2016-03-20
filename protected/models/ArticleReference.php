@@ -1,6 +1,6 @@
 <?php
 
-use mongoyii\Model;
+use sammaye\mongoyii\Model;
 
 /**
  * This model represents an article reference. These are basically URLs for support the facts within the article.

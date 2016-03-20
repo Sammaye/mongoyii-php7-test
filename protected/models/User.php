@@ -1,8 +1,8 @@
 <?php
 
-use mongoyii\Document;
-use mongoyii\Query;
-use mongoyii\DataProvider;
+use sammaye\mongoyii\Document;
+use sammaye\mongoyii\Query;
+use sammaye\mongoyii\DataProvider;
 
 /**
  * Represents the user and his/her data
@@ -38,7 +38,7 @@ class User extends Document
 	{
 	  return array(
   		'EMongoTimestampBehaviour' => array(
-  			'class' => 'mongoyii\behaviors\TimestampBehavior' // Adds a handy create_time and update_time
+  			'class' => 'sammaye\mongoyii\behaviors\TimestampBehavior' // Adds a handy create_time and update_time
   	  ));
 	}
 

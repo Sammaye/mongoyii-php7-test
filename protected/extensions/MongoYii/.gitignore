@@ -1,8 +1,0 @@
-# ignore IDE specific files and dirs
-.idea
-.settings
-.project
-.buildpath
-
-# ignore temporary files
-*~

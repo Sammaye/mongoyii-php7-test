@@ -1,6 +1,6 @@
 <?php 
 
-use mongoyii\DataProvider;
+use sammaye\mongoyii\DataProvider;
 
 ?>
 

@@ -60,5 +60,50 @@
             "mongodb",
             "persistence"
         ]
+    },
+    {
+        "name": "sammaye/mongoyii-php7",
+        "version": "dev-master",
+        "version_normalized": "9999999-dev",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/Sammaye/mongoyii-php7.git",
+            "reference": "91be350c645d9f18df7c4c2314ab394a019c4129"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/Sammaye/mongoyii-php7/zipball/91be350c645d9f18df7c4c2314ab394a019c4129",
+            "reference": "91be350c645d9f18df7c4c2314ab394a019c4129",
+            "shasum": ""
+        },
+        "require": {
+            "ext-mongodb": "*",
+            "mongodb/mongodb": "^1.0.0"
+        },
+        "time": "2016-03-20 20:07:32",
+        "type": "yii-extension",
+        "installation-source": "source",
+        "autoload": {
+            "psr-4": {
+                "sammaye\\mongoyii\\": ""
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "BSD-3-Clause"
+        ],
+        "authors": [
+            {
+                "name": "Sammaye",
+                "homepage": "http://sammaye.wordpress.com"
+            }
+        ],
+        "description": "A Yii MongoDB ORM for PHP7",
+        "keywords": [
+            "PHP7",
+            "mongodb",
+            "orm",
+            "yii"
+        ]
     }
 ]
