@@ -100,7 +100,9 @@ class User extends Document
 		//if($this->_id!==null)
 			//$criteria->compare('_id', new MongoId($this->_id));
 		//$criteria->compare('__v', $this->__v);
-		$criteria->compare('username', $this->username, true);
+		if($this->username !== null){
+			$criteria->compare('username', $this->username, true);
+		}
 		return new DataProvider(get_class($this), array(
 			'criteria' => $criteria,
 			'sort' => array(
