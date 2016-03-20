@@ -43,7 +43,7 @@ Yii::app()->getClientScript()->registerScript('references', $js);
 	<div class="references">
 		<?php foreach($model->references as $k=>$v){ 
 			$r=new ArticleReference();
-			$r->setAttributes($v); 
+			$r->setAttributes((array)$v);
 			$this->renderPartial('_articleReference',array('model'=>$r, 'k' => $k));
 		} ?>
 	</div>
