@@ -54,25 +54,25 @@ return array(
 		),
 		
 		// uncomment the following to enable URLs in path-format
-		/*
+		
 		'urlManager'=>array(
 			'urlFormat'=>'path',
 			'rules'=>array(
-				'<controller:\w+>/<id:\d+>'=>'<controller>/view',
-				'<controller:\w+>/<action:\w+>/<id:\d+>'=>'<controller>/<action>',
+				//'<controller:\w+>/<id:.{24,}>'=>'<controller>/view',
+				'<controller:\w+>/<action:\w+>/<id:.{24,}>'=>'<controller>/<action>',
 				'<controller:\w+>/<action:\w+>'=>'<controller>/<action>',
 			),
 		),
-		*/
+		
 		'mongodb' => array(
 			'class' => 'mongoyii\Client',
-			'uri' => 'mongodb://localhost:27017',
+			'uri' => 'mongodb://sam:blah@localhost:27017/admin',
 			'options' => [],
 			'driverOptions' => [],
 			'db' => [
 				'super_test' => [
 					'writeConcern' => new WriteConcern(1),
-					'readPreference' => new ReadPreference(ReadPreference::RP_PRIMARY),					
+					'readPreference' => new ReadPreference(ReadPreference::RP_PRIMARY),
 				]
 			],
 			'enableProfiling' => true

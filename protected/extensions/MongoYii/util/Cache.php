@@ -69,7 +69,7 @@ class Cache extends CCache
 		parent::init();
 
 		if($this->ensureIndex){
-			$this->getCollection()->ensureIndex( array('key' => 1));  // create index on "key"
+			$this->getCollection()->createIndex( array('key' => 1));  // create index on "key"
 		}
 	}
 	 
@@ -242,7 +242,7 @@ class Cache extends CCache
 		$options = array('upsert' => true);
 
 		try{
-			return $this->getCollection()->updateOne($criteria, $data, $options);
+			return $this->getCollection()->updateOne($criteria, ['$set' => $data], $options);
 		}catch(Exception $e){
 			return false;
 		}

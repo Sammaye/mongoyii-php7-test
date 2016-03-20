@@ -207,10 +207,11 @@ class Client extends CApplicationComponent
 			if(isset($this->dbs[$name])){
 				return $this->dbs[$name];
 			}
-			return $this->dbs[$name] = new Database(
+			$db = $this->dbs[$name] = new Database(
 				$this->getclient()->selectDatabase($name, $options),
 				$this
 			);
+			return $db;
 		}
 		
 		// If we have a default database set let's go looking for it

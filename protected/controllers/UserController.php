@@ -2,6 +2,8 @@
 
 use MongoDB\BSON\ObjectID;
 
+use mongoyii\File;
+
 /**
  * This represents the user actions
  */
@@ -72,27 +74,38 @@ class UserController extends Controller
 	}
 	
 	public function actionEdit(){
+		
 		$model=User::model()->findOne(array('_id'=> new ObjectID(Yii::app()->user->id)));
 		if($model===null)
 			throw new CHttpException(403, 'You are not logged in');
-		/*
-		if($file=EMongoFile::populate($model,'avatar')){
-			if($oldFile=EMongoFile::model()->findOne(array('userId'=>Yii::app()->user->id)))
-				$oldFile->delete();
-			$file->userId=$model->_id;
-			if($file->save()){
-				Yii::app()->user->setFlash('success', "Avatar Changed!");
-			}				
+		
+		if($file=File::populate($model,'avatar')){
+			if(
+				$oldFile=File::model()
+					->getCollection()
+					->getCollectionsWrapper()
+					->getFilesCollection()
+					->FindOne(
+						['userId'=>Yii::app()->user->id]
+					)
+			){
+				File::model()->getCollection()->delete($oldFile->_id);
+			}
+//			$file->userId=$model->_id;
+//			if($file->save()){
+//				Yii::app()->user->setFlash('success', "Avatar Changed!");
+//			}				
 		}
-		*/
+		
+		
 		if(isset($_POST['User'])){
 			$model->attributes=$_POST['User'];
 			if($model->validate()){
 				Yii::app()->user->setFlash('success', 'Edit Saved');
-				return $this->redirect('user/edit');
+				return $this->redirect('/user/edit');
 			}
 		}
-				
+		
 		$this->render('edit',array(
 			'model' => $model		
 		));

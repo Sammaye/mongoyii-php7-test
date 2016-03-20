@@ -2,6 +2,8 @@
 
 namespace mongoyii;
 
+use MongoDB\GridFS\Bucket;
+
 use mongoyii\Collection;
 use mongoyii\Exception;
 
@@ -27,8 +29,8 @@ class Database
 
 	public function __call($name, $parameters = [])
 	{
-	    if(method_exists($this->collection, $name)){
-	        return call_user_func_array(array($this->collection, $name), $parameters);
+	    if(method_exists($this->database, $name)){
+	        return call_user_func_array(array($this->database, $name), $parameters);
 	    }
 	    throw new Exception("$name is not a callable function");
 	}
@@ -45,5 +47,10 @@ class Database
 	        $this->database->selectCollection($collectionName, $options),
 	        $this->client
         );
+	}
+	
+	public function getGridFs($options = [])
+	{
+	    return new Bucket($this->client, $this->database->getDatabaseName(), $options);
 	}
 }

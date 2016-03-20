@@ -1,12 +1,23 @@
 <?php
 
+namespace mongoyii;
+
+use MongoDB\BSON\ObjectID;
+use MongoDB\GridFS\GridFSDownload;
+
+use Yii;
+use CUploadedFile;
+
+use mongoyii\Document;
+use mongoyii\Exception;
+
 /**
  * The MongoYii representation of a helper for uploading files to GridFS.
  *
  * It can accept an input file from $_FILES via ::populate and can also do find() and findOne() on the files collection.
  * This file is specifically designed for uploading files from a form to GridFS and is merely a helper, IT IS IN NO WAY REQUIRED.
  */
-class EMongoFile extends EMongoDocument
+class File extends Document
 {
 	/**
 	 * Our file object, can be either the MongoGridFSFile or CUploadFile
@@ -20,7 +31,7 @@ class EMongoFile extends EMongoDocument
 	 */
 	public function getFilename()
 	{
-		if($this->getFile() instanceof MongoGridFSFile){
+		if($this->getFile() instanceof GridFSDownload){
 			return $this->getFile()->getFilename();
 		}
 		if($this->getFile() instanceof CUploadedFile){
@@ -38,7 +49,7 @@ class EMongoFile extends EMongoDocument
 	 */
 	public function getSize()
 	{
-		if($this->getFile() instanceof MongoGridFSFile || $this->getFile() instanceof CUploadedFile){
+		if($this->getFile() instanceof GridFSDownload || $this->getFile() instanceof CUploadedFile){
 			return $this->getFile()->getSize();
 		}
 		if(is_file($this->getFile())){
@@ -53,7 +64,7 @@ class EMongoFile extends EMongoDocument
 	 */
 	public function getBytes()
 	{
-		if($this->getFile() instanceof MongoGridFSFile){
+		if($this->getFile() instanceof GridFSDownload){
 			return $this->getFile()->getBytes();
 		}
 		if($this->getFile() instanceof CUploadedFile || (is_file($this->getFile()) && is_readable($this->getFile()))){
@@ -70,7 +81,7 @@ class EMongoFile extends EMongoDocument
 		// This if statement allows for you to continue using this class AFTER insert
 		// basically it will only get the file if you plan on using it further which means that
 		// otherwise it omits at least one database call each time
-		if($this->_id instanceof MongoId && !$this->_file instanceof MongoGridFSFile){
+		if($this->_id instanceof ObjectID && !$this->_file instanceof GridFSDownload){
 			return $this->_file = $this->getCollection()->get($this->_id);
 		}
 		return $this->_file;
@@ -109,7 +120,7 @@ class EMongoFile extends EMongoDocument
 	 */
 	public function __call($name, $parameters)
 	{
-		if($this->getFile() instanceof MongoGridFSFile && method_exists($this->getFile(), $name)){
+		if($this->getFile() instanceof GridFSDownload && method_exists($this->getFile(), $name)){
 			return call_user_func_array(array($this->getFile(), $name), $parameters);
 		}
 		return parent::__call($name, $parameters);
@@ -124,7 +135,7 @@ class EMongoFile extends EMongoDocument
 	public static function populate($model, $attribute)
 	{
 		if($file = CUploadedFile::getInstance($model, $attribute)){
-			$model=new EMongoFile();
+			$model=new static;
 			$model->setFile($file);
 			return $model;
 		}
@@ -210,7 +221,7 @@ class EMongoFile extends EMongoDocument
 	public function insert($attributes = null)
 	{
 		if(!$this->getIsNewRecord()){
-			throw new EMongoException(Yii::t('yii','The active record cannot be inserted to database because it is not new.'));
+			throw new Exception(Yii::t('yii','The active record cannot be inserted to database because it is not new.'));
 		}
 		if(!$this->beforeSave()){
 			return false;
@@ -248,7 +259,12 @@ class EMongoFile extends EMongoDocument
 	 */
 	public function getCollection()
 	{
-		return $this->getDbConnection()->getDB()->getGridFS($this->collectionPrefix());
+		return $this
+			->getDbConnection()
+			->selectDatabase()
+			->getGridFS([
+				'bucketName' => $this->collectionPrefix()
+			]);
 	}
 
 	/**
